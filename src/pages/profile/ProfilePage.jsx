@@ -40,7 +40,22 @@ export default function ProfilePage() {
       if (error) {
         setErrorMessage(getProfileError(error))
       } else if (!data) {
-        setErrorMessage('لم نجد سجلاً لملفك الشخصي في جدول profiles.')
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: user.id,
+            full_name: user.user_metadata?.full_name ?? '',
+            avatar_url: user.user_metadata?.avatar_url ?? null,
+          }, { onConflict: 'id' })
+          .select('id, full_name, avatar_url, created_at')
+          .single()
+
+        if (createError) {
+          setErrorMessage('لم نجد سجلاً لملفك الشخصي، وتعذر إنشاؤه. تحقق من سياسات RLS.')
+        } else {
+          setProfile(newProfile)
+          setFullName(newProfile.full_name ?? '')
+        }
       } else {
         setProfile(data)
         setFullName(data.full_name ?? user.user_metadata?.full_name ?? '')
