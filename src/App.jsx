@@ -1,10 +1,9 @@
-import { useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
-import { useAuth } from './components/auth/useAuth.js'
 import ProtectedRoute from './components/auth/ProtectedRoute.jsx'
 import './components/auth/auth.css'
 import LoginPage from './pages/auth/LoginPage.jsx'
 import RegisterPage from './pages/auth/RegisterPage.jsx'
+import ProfilePage from './pages/profile/ProfilePage.jsx'
 
 function HomePage() {
   return (
@@ -22,36 +21,6 @@ function HomePage() {
   )
 }
 
-function AccountPage() {
-  const { user, signOut } = useAuth()
-  const [errorMessage, setErrorMessage] = useState('')
-
-  async function handleSignOut() {
-    const { error } = await signOut()
-
-    if (error) {
-      setErrorMessage('تعذر تسجيل الخروج. حاول مرة أخرى.')
-    }
-  }
-
-  return (
-    <main className="auth-page" dir="rtl">
-      <section className="auth-card">
-        <Link className="auth-brand" to="/">
-          <span className="auth-brand-mark" aria-hidden="true">F</span>
-          <span>FUSHA</span>
-        </Link>
-        <p className="auth-eyebrow">تم تسجيل الدخول</p>
-        <h1>أهلاً بك في FUSHA</h1>
-        <p className="auth-description">{user?.email}</p>
-        <p className="auth-description">حسابك محمي. ستُضاف تفاصيل الملف الشخصي في المرحلة التالية.</p>
-        {errorMessage && <p className="auth-alert auth-alert-error" role="alert">{errorMessage}</p>}
-        <button className="auth-submit" type="button" onClick={handleSignOut}>تسجيل الخروج</button>
-      </section>
-    </main>
-  )
-}
-
 function App() {
   return (
     <Routes>
@@ -62,7 +31,7 @@ function App() {
         path="/profile"
         element={
           <ProtectedRoute>
-            <AccountPage />
+            <ProfilePage />
           </ProtectedRoute>
         }
       />
