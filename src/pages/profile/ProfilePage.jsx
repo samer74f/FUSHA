@@ -135,6 +135,7 @@ export default function ProfilePage() {
           <span className="auth-brand-mark" aria-hidden="true">F</span>
           <span>FUSHA</span>
         </Link>
+        <Link className="profile-store-link" to="/store">دخول إلى المتجر</Link>
 
         <div className="profile-heading">
           {profile?.avatar_url ? (

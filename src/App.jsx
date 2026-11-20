@@ -1,5 +1,6 @@
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/auth/ProtectedRoute.jsx'
+import { useAuth } from './components/auth/useAuth.js'
 import './components/auth/auth.css'
 import LoginPage from './pages/auth/LoginPage.jsx'
 import RegisterPage from './pages/auth/RegisterPage.jsx'
@@ -13,6 +14,8 @@ import OrdersPage from './pages/store/OrdersPage.jsx'
 import AdminStorePage from './pages/store/AdminStorePage.jsx'
 
 function HomePage() {
+  const { user } = useAuth()
+
   return (
     <main className="auth-page" dir="rtl">
       <section className="auth-home">
@@ -20,9 +23,17 @@ function HomePage() {
         <h1>FUSHA</h1>
         <p>اكتشف أماكن جديدة، وخطط لرحلتك القادمة، وانضم إلى مجتمع المغامرات الخارجية.</p>
         <div className="auth-home-actions">
-          <Link className="auth-home-link auth-home-link-primary" to="/store">تصفح المتجر</Link>
-          <Link className="auth-home-link auth-home-link-primary" to="/register">إنشاء حساب</Link>
-          <Link className="auth-home-link" to="/login">تسجيل الدخول</Link>
+          {user ? (
+            <>
+              <Link className="auth-home-link auth-home-link-primary" to="/store">دخول إلى المتجر</Link>
+              <Link className="auth-home-link" to="/profile">ملفي الشخصي</Link>
+            </>
+          ) : (
+            <>
+              <Link className="auth-home-link auth-home-link-primary" to="/register">إنشاء حساب</Link>
+              <Link className="auth-home-link" to="/login">تسجيل الدخول</Link>
+            </>
+          )}
         </div>
       </section>
     </main>
@@ -35,9 +46,18 @@ function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/store" element={<StorePage />} />
-      <Route path="/store/:productId" element={<ProductDetailsPage />} />
-      <Route path="/cart" element={<CartPage />} />
+      <Route
+        path="/store"
+        element={<ProtectedRoute><StorePage /></ProtectedRoute>}
+      />
+      <Route
+        path="/store/:productId"
+        element={<ProtectedRoute><ProductDetailsPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/cart"
+        element={<ProtectedRoute><CartPage /></ProtectedRoute>}
+      />
       <Route
         path="/checkout"
         element={

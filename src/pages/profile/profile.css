@@ -2,6 +2,18 @@
   width: min(100%, 520px);
 }
 
+.profile-store-link {
+  display: inline-block;
+  margin-top: 18px;
+  color: #356c44;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.profile-store-link:hover {
+  text-decoration: underline;
+}
+
 .profile-heading {
   display: flex;
   align-items: center;
