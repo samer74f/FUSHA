@@ -1,16 +1,70 @@
-# React + Vite
+# FUSHA
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+منصة لاكتشاف الأنشطة الخارجية والتخطيط للرحلات وشراء مستلزماتها. هذا الفرع (`feature/store-auth`) يحتوي عمل يوسف في الحسابات والملف الشخصي والمتجر والسلة والطلبات.
 
-Currently, two official plugins are available:
+## تشغيل المشروع
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. ثبّت الحزم:
 
-## React Compiler
+   ```bash
+   npm install
+   ```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+2. أنشئ ملف إعداد محلي:
 
-## Expanding the ESLint configuration
+   ```bash
+   cp .env.example .env.local
+   ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+3. أضف رابط مشروع Supabase ومفتاح النشر العام إلى `.env.local`:
+
+   ```env
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+   ```
+
+4. شغّل التطبيق:
+
+   ```bash
+   npm run dev
+   ```
+
+لا تضع `service_role` أو أي مفتاح سري في متغير يبدأ بـ`VITE_` أو ترفعه إلى GitHub.
+
+## ما يتضمنه الفرع
+
+- التسجيل والدخول والخروج واستعادة جلسة Supabase Auth بعد تحديث الصفحة.
+- حماية صفحات المتجر والسلة والطلبات والملف الشخصي للمستخدم المسجّل.
+- عرض الملف الشخصي وتعديل الاسم مع قصر القراءة والتعديل على صاحبه.
+- عرض المنتجات وتفاصيلها والبحث والتصفية حسب التصنيف والسعر.
+- سلة محفوظة للمستخدم، مع حفظ محلي احتياطي عند تعذر مزامنة Supabase.
+- إتمام الطلب من دون دفع إلكتروني، مع التحقق من المخزون والسعر وحفظ تفاصيل الطلب وتحديث المخزون داخل `place_order`.
+- صفحة الطلبات السابقة وصفحة إدارة المتجر.
+
+## قاعدة البيانات والصلاحيات
+
+ملف الترحيل هو [`supabase/migrations/20261120000100_store_cart_orders.sql`](supabase/migrations/20261120000100_store_cart_orders.sql). مخطط المتجر مطبّق على مشروع FUSHA المشترك. يعيد استخدام جدول `profiles` الموجود، وينشئ `products` و`cart_items` و`orders` و`order_items` مع سياسات RLS.
+
+صفحة الإدارة `/admin/store` تفحص `app_metadata.role = "admin"` أو وجود `admin` في `app_metadata.roles`. دور **Developer** في عضوية مؤسسة Supabase منفصل عن دور مدير المتجر داخل التطبيق؛ المستخدم العادي لا يستطيع منح نفسه دور مدير من المتصفح. يجب على مالك المشروع تهيئة مدير أولي عبر إجراء موثوق من جهة الخادم باستخدام Supabase Auth Admin API، مع إبقاء مفتاح الخدمة خارج الواجهة الأمامية. بعد تحديث الدور، يسجّل المدير الخروج ثم الدخول ليحصل على جلسة محدثة.
+
+المتجر لا يحتوي منتجات افتراضية. بعد تهيئة مدير المتجر، أضف المنتجات وأسعارها وصورها ومخزونها من `/admin/store`.
+
+## المسارات
+
+| المسار | الاستخدام |
+| --- | --- |
+| `/register` و`/login` | إنشاء حساب والدخول |
+| `/profile` | الملف الشخصي |
+| `/store` و`/store/:productId` | المتجر وتفاصيل المنتج |
+| `/cart` و`/checkout` | السلة وإتمام الطلب |
+| `/orders` | طلبات المستخدم الحالي |
+| `/admin/store` | إدارة المنتجات والطلبات للمسؤول فقط |
+
+## الفحص المحلي
+
+```bash
+npm run lint
+npm run build
+```
+
+لاختبار مسار الطلب بالكامل، سجّل الدخول، أضف منتجات من حساب مدير المتجر، ثم أضف منتجاً إلى السلة وأكمل الطلب. تأكد من ظهور الطلب وتحديث المخزون.
