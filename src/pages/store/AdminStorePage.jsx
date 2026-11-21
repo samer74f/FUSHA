@@ -1,10 +1,24 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { deleteProduct, getAdminProducts, getAllOrders, saveProduct, setOrderStatus } from './storeService.js'
 import './store.css'
 
 const initialProduct = { name: '', description: '', price: '', category: '', image_url: '', stock: '', is_active: true }
 const statuses = ['Pending', 'Processing', 'Completed', 'Cancelled']
+const loadError = 'تعذر تحميل بيانات الإدارة. تحقق من الاتصال والجداول وصلاحية مسؤول المتجر في Supabase.'
+
+async function fetchAdminData() {
+  const [productsResult, ordersResult] = await Promise.all([getAdminProducts(), getAllOrders()])
+
+  if (productsResult.error || ordersResult.error) {
+    throw new Error('Could not load store administration data.')
+  }
+
+  return {
+    products: productsResult.data ?? [],
+    orders: ordersResult.data ?? [],
+  }
+}
 
 export default function AdminStorePage() {
   const [products, setProducts] = useState([])
@@ -14,37 +28,46 @@ export default function AdminStorePage() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const isMounted = useRef(false)
 
   const reloadData = useCallback(async () => {
     setLoading(true)
-    const [productsResult, ordersResult] = await Promise.all([getAdminProducts(), getAllOrders()])
-    if (productsResult.error || ordersResult.error) {
-      setErrorMessage('تعذر تحميل بيانات الإدارة. تحقق من الجداول وسياسات مسؤول المتجر في Supabase.')
-    } else {
-      setProducts(productsResult.data ?? [])
-      setOrders(ordersResult.data ?? [])
-      setErrorMessage('')
+    setErrorMessage('')
+
+    try {
+      const data = await fetchAdminData()
+
+      if (!isMounted.current) return
+
+      setProducts(data.products)
+      setOrders(data.orders)
+    } catch {
+      if (isMounted.current) {
+        setErrorMessage(loadError)
+      }
+    } finally {
+      if (isMounted.current) setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   useEffect(() => {
-    let isMounted = true
+    isMounted.current = true
 
-    Promise.all([getAdminProducts(), getAllOrders()]).then(([productsResult, ordersResult]) => {
-      if (!isMounted) return
-
-      if (productsResult.error || ordersResult.error) {
-        setErrorMessage('تعذر تحميل بيانات الإدارة. تحقق من الجداول وسياسات مسؤول المتجر في Supabase.')
-      } else {
-        setProducts(productsResult.data ?? [])
-        setOrders(ordersResult.data ?? [])
+    async function loadInitialData() {
+      try {
+        const data = await fetchAdminData()
+        if (!isMounted.current) return
+        setProducts(data.products)
+        setOrders(data.orders)
+      } catch {
+        if (isMounted.current) setErrorMessage(loadError)
+      } finally {
+        if (isMounted.current) setLoading(false)
       }
+    }
 
-      setLoading(false)
-    })
-
-    return () => { isMounted = false }
+    loadInitialData()
+    return () => { isMounted.current = false }
   }, [])
 
   function startEdit(item) {
