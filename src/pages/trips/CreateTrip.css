@@ -1,80 +1,41 @@
 .create-trip-page {
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 30px;
-  background-color: white;
-  border-radius: 12px;
-}
-
-.create-trip-header {
-  margin-bottom: 30px;
-}
-
-.create-trip-header h1 {
-  color: #244b38;
-  margin-bottom: 10px;
-}
-
-.create-trip-header p {
-  color: #777;
+  max-inline-size: 46rem;
+  margin-inline: auto;
 }
 
 .trip-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  margin-block-start: 1.25rem;
 }
 
-.trip-form label {
-  font-weight: 600;
-  color: #244b38;
+.trip-form fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
-.trip-form input,
-.trip-form select,
+.trip-form-wide {
+  grid-column: 1 / -1;
+}
+
 .trip-form textarea {
-  padding: 12px;
-  border: 1px solid #dcd8cc;
-  border-radius: 8px;
-  font-size: 15px;
-  outline: none;
+  resize: vertical;
 }
 
-.trip-form input:focus,
-.trip-form select:focus,
-.trip-form textarea:focus {
-  border-color: #244b38;
+.trip-form small {
+  color: var(--trip-muted);
+  font-weight: 400;
 }
 
-.form-buttons {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
+.trip-form .trip-actions {
+  margin-block-start: 1.25rem;
 }
 
-.form-buttons button {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.form-buttons button:first-child {
-  background-color: #244b38;
-  color: white;
-}
-
-.form-buttons button:last-child {
-  background-color: #e9e4d5;
-  color: #244b38;
-}
-
-@media (max-width: 600px) {
-  .create-trip-page {
-    padding: 20px;
-  }
-
-  .form-buttons {
-    flex-direction: column;
+@media (max-width: 36rem) {
+  .trip-form fieldset {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

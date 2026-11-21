@@ -1,87 +1,46 @@
-import "./CreateTrip.css";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import TripForm from "../../components/trips/TripForm";
+import { TripLoadError, TripSignIn } from "../../components/trips/TripMessages";
+import { createTrip, getTripTypeSupport } from "../../services/tripService";
 
-function CreateTrip({ onCreateTrip, onCancel }) {
-  function handleSubmit(event) {
-    event.preventDefault();
+function CreateTrip({ user, text, loginPath }) {
+  const navigate = useNavigate();
+  const userId = user?.id;
+  const [schema, setSchema] = useState(null);
+  const [requestNumber, setRequestNumber] = useState(0);
 
-    const formData = new FormData(event.target);
+  useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    getTripTypeSupport().then(
+      (typeSupported) => { if (active) setSchema({ typeSupported }); },
+      (error) => { if (active) setSchema({ error }); },
+    );
+    return () => { active = false; };
+  }, [requestNumber, userId]);
 
-    const newTrip = {
-      id: Date.now(),
-      title: formData.get("title"),
-      location: formData.get("location"),
-      date: formData.get("date"),
-      tripType: formData.get("tripType"),
-      participants: formData.get("participants"),
-      description: formData.get("description"),
-    };
+  async function handleCreateTrip(values) {
+    if (!user) throw new Error("trip_sign_in_required");
+    await createTrip(values, user.id);
+    navigate("/trips", { replace: true, state: { notice: "created" } });
+  }
 
-    onCreateTrip(newTrip);
+  function retry() {
+    setSchema(null);
+    setRequestNumber(requestNumber + 1);
   }
 
   return (
-    <main className="create-trip-page">
-      <header className="create-trip-header">
-        <h1>Create New Trip</h1>
-        <p>Plan your next adventure with FUSHA.</p>
-      </header>
-
-      <form className="trip-form" onSubmit={handleSubmit}>
-        <label htmlFor="title">Trip Title</label>
-        <input
-          type="text"
-          id="title"
-          name="title"
-          placeholder="Enter trip title"
-          required
-        />
-
-        <label htmlFor="location">Location</label>
-        <input
-          type="text"
-          id="location"
-          name="location"
-          placeholder="Enter trip location"
-          required
-        />
-
-        <label htmlFor="date">Trip Date</label>
-        <input type="date" id="date" name="date" required />
-
-        <label htmlFor="tripType">Trip Type</label>
-        <select id="tripType" name="tripType" required>
-          <option value="">Select trip type</option>
-          <option value="Individual">Individual</option>
-          <option value="Family">Family</option>
-          <option value="Group">Group</option>
-        </select>
-
-        <label htmlFor="participants">Participants</label>
-        <input
-          type="number"
-          id="participants"
-          name="participants"
-          min="1"
-          placeholder="Number of participants"
-          required
-        />
-
-        <label htmlFor="description">Description</label>
-        <textarea
-          id="description"
-          name="description"
-          placeholder="Describe your trip..."
-          rows="4"
-        />
-
-        <section className="form-buttons">
-          <button type="submit">Create Trip</button>
-          <button type="button" onClick={onCancel}>
-            Cancel
-          </button>
-        </section>
-      </form>
-    </main>
+    <section className="create-trip-page trip-panel">
+      <h1>{text.create}</h1>
+      {(user === undefined || (user && !schema)) && <p role="status">{text.loading}</p>}
+      {user === null && <TripSignIn text={text} loginPath={loginPath} backTo="/trips" />}
+      {user && schema?.error && <TripLoadError error={schema.error} text={text} fallback="load" onRetry={retry} />}
+      {user && schema && !schema.error && (
+        <TripForm text={text} typeSupported={schema.typeSupported} onSave={handleCreateTrip} cancelTo="/trips" />
+      )}
+    </section>
   );
 }
 
