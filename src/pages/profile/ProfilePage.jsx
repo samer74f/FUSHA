@@ -29,39 +29,45 @@ export default function ProfilePage() {
       setLoading(true)
       setErrorMessage('')
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url, created_at')
-        .eq('id', user.id)
-        .maybeSingle()
-
-      if (!isMounted) return
-
-      if (error) {
-        setErrorMessage(getProfileError(error))
-      } else if (!data) {
-        const { data: newProfile, error: createError } = await supabase
+      try {
+        const { data, error } = await supabase
           .from('profiles')
-          .upsert({
-            id: user.id,
-            full_name: user.user_metadata?.full_name ?? '',
-            avatar_url: user.user_metadata?.avatar_url ?? null,
-          }, { onConflict: 'id' })
           .select('id, full_name, avatar_url, created_at')
-          .single()
+          .eq('id', user.id)
+          .maybeSingle()
 
-        if (createError) {
-          setErrorMessage('لم نجد سجلاً لملفك الشخصي، وتعذر إنشاؤه. تحقق من سياسات RLS.')
+        if (!isMounted) return
+
+        if (error) {
+          setErrorMessage(getProfileError(error))
+        } else if (!data) {
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: user.id,
+              full_name: user.user_metadata?.full_name ?? '',
+              avatar_url: user.user_metadata?.avatar_url ?? null,
+            }, { onConflict: 'id' })
+            .select('id, full_name, avatar_url, created_at')
+            .single()
+
+          if (!isMounted) return
+
+          if (createError) {
+            setErrorMessage('لم نجد سجلاً لملفك الشخصي، وتعذر إنشاؤه. تحقق من سياسات RLS.')
+          } else {
+            setProfile(newProfile)
+            setFullName(newProfile.full_name ?? '')
+          }
         } else {
-          setProfile(newProfile)
-          setFullName(newProfile.full_name ?? '')
+          setProfile(data)
+          setFullName(data.full_name ?? user.user_metadata?.full_name ?? '')
         }
-      } else {
-        setProfile(data)
-        setFullName(data.full_name ?? user.user_metadata?.full_name ?? '')
+      } catch {
+        if (isMounted) setErrorMessage('تعذر الاتصال لتحميل ملفك الشخصي. حاول مرة أخرى.')
+      } finally {
+        if (isMounted) setLoading(false)
       }
-
-      setLoading(false)
     }
 
     if (user?.id) {
@@ -92,31 +98,37 @@ export default function ProfilePage() {
 
     setSaving(true)
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ full_name: cleanName })
-      .eq('id', user.id)
-      .select('id, full_name, avatar_url, created_at')
-      .maybeSingle()
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ full_name: cleanName })
+        .eq('id', user.id)
+        .select('id, full_name, avatar_url, created_at')
+        .maybeSingle()
 
-    if (error) {
-      setErrorMessage('تعذر حفظ التعديلات. تحقق من صلاحيات RLS وحاول مرة أخرى.')
-    } else if (!data) {
-      setErrorMessage('لم يتم تحديث الملف. قد تمنع سياسات RLS هذا التعديل.')
-    } else {
-      setProfile(data)
-      setFullName(data.full_name ?? '')
-      setSuccessMessage('تم حفظ اسمك في الملف الشخصي.')
+      if (error) {
+        setErrorMessage('تعذر حفظ التعديلات. تحقق من صلاحيات RLS وحاول مرة أخرى.')
+      } else if (!data) {
+        setErrorMessage('لم يتم تحديث الملف. قد تمنع سياسات RLS هذا التعديل.')
+      } else {
+        setProfile(data)
+        setFullName(data.full_name ?? '')
+        setSuccessMessage('تم حفظ اسمك في الملف الشخصي.')
+      }
+    } catch {
+      setErrorMessage('تعذر الاتصال لحفظ التعديلات. حاول مرة أخرى.')
+    } finally {
+      setSaving(false)
     }
-
-    setSaving(false)
   }
 
   async function handleSignOut() {
-    const { error } = await signOut()
+    try {
+      const { error } = await signOut()
 
-    if (error) {
-      setErrorMessage('تعذر تسجيل الخروج. حاول مرة أخرى.')
+      if (error) setErrorMessage('تعذر تسجيل الخروج. حاول مرة أخرى.')
+    } catch {
+      setErrorMessage('تعذر الاتصال لتسجيل الخروج. حاول مرة أخرى.')
     }
   }
 

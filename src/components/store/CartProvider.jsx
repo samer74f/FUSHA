@@ -31,17 +31,19 @@ export function CartProvider({ children }) {
       let notice = ''
 
       if (user?.id) {
-        const { data, error } = await supabase
-          .from('cart_items')
-          .select('quantity, product:products(id, name, description, price, category, image_url, stock, is_active)')
-          .eq('user_id', user.id)
+        try {
+          const { data, error } = await supabase
+            .from('cart_items')
+            .select('quantity, product:products(id, name, description, price, category, image_url, stock, is_active)')
+            .eq('user_id', user.id)
 
-        if (error) {
-          notice = 'تعذر مزامنة السلة مع Supabase؛ تُحفظ حالياً على هذا الجهاز.'
-        } else {
+          if (error) throw error
+
           nextItems = (data ?? [])
             .filter((row) => row.product)
             .map((row) => ({ product: row.product, quantity: row.quantity }))
+        } catch {
+          notice = 'تعذر مزامنة السلة مع Supabase؛ تُحفظ حالياً على هذا الجهاز.'
         }
       }
 

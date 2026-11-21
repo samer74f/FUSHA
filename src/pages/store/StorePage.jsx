@@ -21,17 +21,20 @@ export default function StorePage() {
 
     async function loadProducts() {
       setLoading(true)
-      const { data, error } = await getProducts()
+      setErrorMessage('')
 
-      if (!isMounted) return
-
-      if (error) {
-        setErrorMessage('تعذر جلب المنتجات من Supabase. تحقق من إعداد جدول products وصلاحية القراءة.')
-      } else {
-        setProducts(data ?? [])
+      try {
+        const { data, error } = await getProducts()
+        if (error) throw error
+        if (isMounted) setProducts(data ?? [])
+      } catch {
+        if (isMounted) {
+          setProducts([])
+          setErrorMessage('تعذر جلب المنتجات من Supabase. تحقق من الاتصال وجدول products وصلاحية القراءة.')
+        }
+      } finally {
+        if (isMounted) setLoading(false)
       }
-
-      setLoading(false)
     }
 
     loadProducts()

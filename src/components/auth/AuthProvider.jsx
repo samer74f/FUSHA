@@ -10,16 +10,19 @@ export function AuthProvider({ children }) {
     let isMounted = true
 
     async function loadSession() {
-      const { data, error } = await supabase.auth.getSession()
+      try {
+        const { data, error } = await supabase.auth.getSession()
 
-      if (!isMounted) return
+        if (!isMounted) return
 
-      if (error) {
-        console.error('Could not restore the Supabase session:', error.message)
+        if (error) console.error('Could not restore the Supabase session:', error.message)
+
+        setUser(data.session?.user ?? null)
+      } catch {
+        if (isMounted) setUser(null)
+      } finally {
+        if (isMounted) setLoading(false)
       }
-
-      setUser(data.session?.user ?? null)
-      setLoading(false)
     }
 
     loadSession()

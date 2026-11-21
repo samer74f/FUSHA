@@ -95,43 +95,58 @@ export default function AdminStorePage() {
       return
     }
 
-    const { error } = await saveProduct({
-      ...product,
-      name: product.name.trim(),
-      description: product.description.trim(),
-      price,
-      category: product.category.trim(),
-      image_url: product.image_url.trim() || null,
-      stock,
-    }, editingId)
+    try {
+      const { error } = await saveProduct({
+        ...product,
+        name: product.name.trim(),
+        description: product.description.trim(),
+        price,
+        category: product.category.trim(),
+        image_url: product.image_url.trim() || null,
+        stock,
+      }, editingId)
 
-    if (error) {
-      setErrorMessage('تعذر حفظ المنتج. تحقق من صلاحية المسؤول وحقول جدول products.')
-      return
+      if (error) {
+        setErrorMessage('تعذر حفظ المنتج. تحقق من صلاحية المسؤول وحقول جدول products.')
+        return
+      }
+
+      setProduct(initialProduct)
+      setEditingId(null)
+      setMessage('تم حفظ المنتج.')
+      await reloadData()
+    } catch {
+      setErrorMessage('تعذر الاتصال لحفظ المنتج. تحقق من الاتصال وحاول مرة أخرى.')
     }
-
-    setProduct(initialProduct)
-    setEditingId(null)
-    setMessage('تم حفظ المنتج.')
-    await reloadData()
   }
 
   async function handleDelete(productId) {
     if (!window.confirm('هل تريد حذف هذا المنتج؟')) return
-    const { error } = await deleteProduct(productId)
-    if (error) setErrorMessage('تعذر حذف المنتج. قد يكون مرتبطاً بطلب سابق.')
-    else {
-      setMessage('تم حذف المنتج.')
-      await reloadData()
+
+    try {
+      const { error } = await deleteProduct(productId)
+      if (error) {
+        setErrorMessage('تعذر حذف المنتج. قد يكون مرتبطاً بطلب سابق.')
+      } else {
+        setMessage('تم حذف المنتج.')
+        await reloadData()
+      }
+    } catch {
+      setErrorMessage('تعذر الاتصال لحذف المنتج. حاول مرة أخرى.')
     }
   }
 
   async function handleStatusChange(orderId, status) {
-    const { error } = await setOrderStatus(orderId, status)
-    if (error) setErrorMessage('تعذر تحديث حالة الطلب. تحقق من صلاحيات المسؤول.')
-    else {
-      setMessage('تم تحديث حالة الطلب.')
-      await reloadData()
+    try {
+      const { error } = await setOrderStatus(orderId, status)
+      if (error) {
+        setErrorMessage('تعذر تحديث حالة الطلب. تحقق من صلاحيات المسؤول.')
+      } else {
+        setMessage('تم تحديث حالة الطلب.')
+        await reloadData()
+      }
+    } catch {
+      setErrorMessage('تعذر الاتصال لتحديث حالة الطلب. حاول مرة أخرى.')
     }
   }
 

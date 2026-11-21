@@ -21,11 +21,21 @@ export default function OrdersPage() {
     let isMounted = true
 
     async function loadOrders() {
-      const { data, error } = await getOrders(user.id)
-      if (!isMounted) return
-      if (error) setErrorMessage('تعذر جلب طلباتك. تحقق من جدول orders وسياسات RLS.')
-      else setOrders(data ?? [])
-      setLoading(false)
+      setLoading(true)
+      setErrorMessage('')
+
+      try {
+        const { data, error } = await getOrders(user.id)
+        if (error) throw error
+        if (isMounted) setOrders(data ?? [])
+      } catch {
+        if (isMounted) {
+          setOrders([])
+          setErrorMessage('تعذر جلب طلباتك. تحقق من الاتصال وجدول orders وسياسات RLS.')
+        }
+      } finally {
+        if (isMounted) setLoading(false)
+      }
     }
 
     loadOrders()

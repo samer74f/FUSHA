@@ -28,21 +28,29 @@ export default function CheckoutPage() {
     }
 
     setSubmitting(true)
-    const { data, error } = await createOrder({
-      recipientName: recipientName.trim(),
-      phone: phone.trim(),
-      deliveryAddress: deliveryAddress.trim(),
-      items,
-    })
+    let result
 
-    if (error) {
+    try {
+      result = await createOrder({
+        recipientName: recipientName.trim(),
+        phone: phone.trim(),
+        deliveryAddress: deliveryAddress.trim(),
+        items,
+      })
+    } catch {
+      setErrorMessage('تعذر معرفة نتيجة الطلب بسبب الاتصال. تحقق من صفحة طلباتي قبل المحاولة مرة أخرى.')
+      setSubmitting(false)
+      return
+    }
+
+    if (result.error) {
       setErrorMessage('تعذر تأكيد الطلب. تأكد من إعداد جداول الطلبات ودالة place_order وسياسات RLS في Supabase.')
       setSubmitting(false)
       return
     }
 
     clearCart()
-    navigate('/orders', { replace: true, state: { orderId: data } })
+    navigate('/orders', { replace: true, state: { orderId: result.data } })
   }
 
   return (

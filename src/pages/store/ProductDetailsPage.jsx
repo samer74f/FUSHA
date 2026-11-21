@@ -16,12 +16,21 @@ export default function ProductDetailsPage() {
     let isMounted = true
 
     async function loadProduct() {
-      const { data, error } = await getProduct(productId)
-      if (!isMounted) return
-      if (error) setErrorMessage('تعذر جلب تفاصيل المنتج من Supabase.')
-      else if (!data) setErrorMessage('لم نعثر على هذا المنتج.')
-      else setProduct(data)
-      setLoading(false)
+      setLoading(true)
+      setErrorMessage('')
+      setProduct(null)
+
+      try {
+        const { data, error } = await getProduct(productId)
+        if (error) throw error
+        if (!isMounted) return
+        if (!data) setErrorMessage('لم نعثر على هذا المنتج.')
+        else setProduct(data)
+      } catch {
+        if (isMounted) setErrorMessage('تعذر جلب تفاصيل المنتج. تحقق من الاتصال وحاول مرة أخرى.')
+      } finally {
+        if (isMounted) setLoading(false)
+      }
     }
 
     loadProduct()
