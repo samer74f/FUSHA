@@ -15,8 +15,8 @@ function TripList({ text, language, user }) {
   const location = useLocation();
   const userId = user?.id;
   const sessionLoading = user === undefined;
-  const [result, setResult] = useState(null);
-  const [requestNumber, setRequestNumber] = useState(0);
+  const [tripsResult, setTripsResult] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [search, setSearch] = useState("");
   const [type, setType] = useState("");
 
@@ -24,23 +24,23 @@ function TripList({ text, language, user }) {
     if (sessionLoading) return;
     let active = true;
     getTrips(userId).then(
-      (trips) => { if (active) setResult({ trips, userId }); },
-      (error) => { if (active) setResult({ error, userId }); },
+      (trips) => { if (active) setTripsResult({ trips, userId }); },
+      (error) => { if (active) setTripsResult({ error, userId }); },
     );
     return () => { active = false; };
-  }, [requestNumber, sessionLoading, userId]);
+  }, [retryCount, sessionLoading, userId]);
 
   function retry() {
-    setResult(null);
-    setRequestNumber(requestNumber + 1);
+    setTripsResult(null);
+    setRetryCount(retryCount + 1);
   }
 
-  const query = search.trim().toLocaleLowerCase(language);
-  const activeResult = result?.userId === userId ? result : null;
-  const trips = activeResult?.trips ?? [];
+  const searchTerm = search.trim().toLocaleLowerCase(language);
+  const currentTripsResult = tripsResult?.userId === userId ? tripsResult : null;
+  const trips = currentTripsResult?.trips ?? [];
   const visibleTrips = trips.filter((trip) => (
     (!type || trip.trip_type === type)
-    && [trip.title, trip.location ?? ""].some((value) => value.toLocaleLowerCase(language).includes(query))
+    && [trip.title, trip.location ?? ""].some((value) => value.toLocaleLowerCase(language).includes(searchTerm))
   ));
 
   return (
@@ -54,9 +54,9 @@ function TripList({ text, language, user }) {
       <TripFilters text={text} search={search} type={type} onSearch={setSearch} onType={setType}
         showType={trips.some((trip) => trip.typeSupported)} />
 
-      {!activeResult && <p className="trip-panel" role="status">{text.loading}</p>}
-      {activeResult?.error && <TripLoadError error={activeResult.error} text={text} fallback="load" onRetry={retry} />}
-      {activeResult?.trips && visibleTrips.length === 0 && <p className="trip-panel">{trips.length ? text.noMatches : text.empty}</p>}
+      {!currentTripsResult && <p className="trip-panel" role="status">{text.loading}</p>}
+      {currentTripsResult?.error && <TripLoadError error={currentTripsResult.error} text={text} fallback="load" onRetry={retry} />}
+      {currentTripsResult?.trips && visibleTrips.length === 0 && <p className="trip-panel">{trips.length ? text.noMatches : text.empty}</p>}
       <div className="trips-list">
         {visibleTrips.map((trip) => <TripCard key={trip.id} trip={trip} text={text} language={language} />)}
       </div>

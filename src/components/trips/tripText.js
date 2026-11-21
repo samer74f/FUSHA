@@ -203,7 +203,7 @@ export function getTripErrorKey(error, fallback) {
   return fallback;
 }
 
-export function getActionError(error, text, fallback) {
+export function getActionErrorMessage(error, text, fallback) {
   switch (error.message) {
     case "Trip capacity has been reached": return text.full;
     case "Capacity cannot be lower than the approved participant count": return text.invalidCapacity;

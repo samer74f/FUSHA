@@ -1,35 +1,38 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { getActionError, tripTypes } from "./tripText";
+import { getActionErrorMessage, tripTypes } from "./tripText";
 import "../../pages/trips/CreateTrip.css";
 
-function toLocalFormValue(timestamp) {
+function formatDateTimeForInput(timestamp) {
   if (!timestamp) return undefined;
   const date = new Date(timestamp);
-  const localTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  const offsetInMilliseconds = date.getTimezoneOffset() * 60 * 1000;
+  const localTime = new Date(date.getTime() - offsetInMilliseconds);
   return localTime.toISOString().slice(0, 16);
 }
 
 function TripForm({ trip, text, typeSupported, onSave, cancelTo }) {
-  const [pending, setPending] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [validationError, setValidationError] = useState("");
   const [saveError, setSaveError] = useState(null);
   const minimumCapacity = Math.max(1, trip?.current_participants ?? 0);
-  const previousStart = toLocalFormValue(trip?.starts_at);
-  const previousEnd = toLocalFormValue(trip?.ends_at);
+  const initialStartInput = formatDateTimeForInput(trip?.starts_at);
+  const initialEndInput = formatDateTimeForInput(trip?.ends_at);
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (pending) return;
+    if (isSaving) return;
 
     setValidationError("");
     setSaveError(null);
     const formData = new FormData(event.currentTarget);
-    const start = formData.get("starts_at");
-    const end = formData.get("ends_at");
+    const startInput = formData.get("starts_at");
+    const endInput = formData.get("ends_at");
     // Keep the original timestamps when the organizer leaves those fields unchanged.
-    const startDate = new Date(start === previousStart ? trip.starts_at : start);
-    const endDate = new Date(end === previousEnd ? trip.ends_at : end);
+    const keepStartTime = trip && startInput === initialStartInput;
+    const keepEndTime = trip && endInput === initialEndInput;
+    const startDate = new Date(keepStartTime ? trip.starts_at : startInput);
+    const endDate = new Date(keepEndTime ? trip.ends_at : endInput);
     const tripType = formData.get("trip_type");
     const values = {
       title: formData.get("title").trim(),
@@ -43,7 +46,7 @@ function TripForm({ trip, text, typeSupported, onSave, cancelTo }) {
       setValidationError("invalidFields");
       return;
     }
-    if (!start || !end || !(Number.isFinite(startDate.getTime()) && endDate > startDate)) {
+    if (!startInput || !endInput || !Number.isFinite(startDate.getTime()) || !(endDate > startDate)) {
       setValidationError("invalidSchedule");
       return;
     }
@@ -52,23 +55,23 @@ function TripForm({ trip, text, typeSupported, onSave, cancelTo }) {
       return;
     }
 
-    values.starts_at = start === previousStart ? trip.starts_at : startDate.toISOString();
-    values.ends_at = end === previousEnd ? trip.ends_at : endDate.toISOString();
+    values.starts_at = keepStartTime ? trip.starts_at : startDate.toISOString();
+    values.ends_at = keepEndTime ? trip.ends_at : endDate.toISOString();
     if (typeSupported && tripType) values.trip_type = tripType;
 
-    setPending(true);
+    setIsSaving(true);
     try {
       await onSave(values);
     } catch (error) {
       setSaveError(error);
     } finally {
-      setPending(false);
+      setIsSaving(false);
     }
   }
 
   return (
     <form className="trip-form" onSubmit={handleSubmit}>
-      <fieldset disabled={pending}>
+      <fieldset disabled={isSaving}>
         <label>
           {text.title}
           <input name="title" dir="auto" defaultValue={trip?.title} maxLength={120} required />
@@ -79,11 +82,11 @@ function TripForm({ trip, text, typeSupported, onSave, cancelTo }) {
         </label>
         <label>
           {text.starts} ({text.localTime})
-          <input name="starts_at" type="datetime-local" defaultValue={previousStart} required />
+          <input name="starts_at" type="datetime-local" defaultValue={initialStartInput} required />
         </label>
         <label>
           {text.ends} ({text.localTime})
-          <input name="ends_at" type="datetime-local" defaultValue={previousEnd} required />
+          <input name="ends_at" type="datetime-local" defaultValue={initialEndInput} required />
         </label>
         {typeSupported ? (
           <label>
@@ -106,12 +109,12 @@ function TripForm({ trip, text, typeSupported, onSave, cancelTo }) {
       </fieldset>
 
       {validationError && <p className="trip-message trip-error" role="alert">{text[validationError]}</p>}
-      {saveError && <p className="trip-message trip-error" role="alert">{getActionError(saveError, text, "save")}</p>}
+      {saveError && <p className="trip-message trip-error" role="alert">{getActionErrorMessage(saveError, text, "save")}</p>}
       <div className="trip-actions">
-        <button className="trip-button" type="submit" disabled={pending}>
-          {pending ? text.working : trip ? text.save : text.create}
+        <button className="trip-button" type="submit" disabled={isSaving}>
+          {isSaving ? text.working : trip ? text.save : text.create}
         </button>
-        {!pending && <Link className="trip-button trip-secondary" to={cancelTo}>{text.cancel}</Link>}
+        {!isSaving && <Link className="trip-button trip-secondary" to={cancelTo}>{text.cancel}</Link>}
       </div>
     </form>
   );

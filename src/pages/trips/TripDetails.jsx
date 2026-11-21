@@ -4,9 +4,9 @@ import JoinTrip from "../../components/trips/JoinTrip";
 import TripBudget from "../../components/trips/TripBudget";
 import { TripLoadError } from "../../components/trips/TripMessages";
 import TripParticipants from "../../components/trips/TripParticipants";
-import { formatTripDate, getActionError } from "../../components/trips/tripText";
+import { formatTripDate, getActionErrorMessage } from "../../components/trips/tripText";
 import {
-  deleteTrip, getMyParticipation, getTrip, removeParticipant, requestTrip, updateParticipantStatus,
+  deleteTrip, getMyParticipation, getTrip, removeParticipant, requestToJoinTrip, updateParticipantStatus,
 } from "../../services/tripService";
 
 function TripDetails({ user, text, language, loginPath }) {
@@ -16,10 +16,10 @@ function TripDetails({ user, text, language, loginPath }) {
   const userId = user?.id;
   const sessionLoading = user === undefined;
   const [tripResult, setTripResult] = useState(null);
-  const [membership, setMembership] = useState(null);
-  const [requestNumber, setRequestNumber] = useState(0);
-  const [manageParticipants, setManageParticipants] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [membershipResult, setMembershipResult] = useState(null);
+  const [reloadCount, setReloadCount] = useState(0);
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [notice, setNotice] = useState(location.state?.notice);
 
@@ -27,62 +27,64 @@ function TripDetails({ user, text, language, loginPath }) {
     if (sessionLoading) return;
     let active = true;
     getTrip(tripId, userId).then(
-      (trip) => { if (active) setTripResult({ trip, requestNumber, userId }); },
-      (error) => { if (active) setTripResult({ error, requestNumber, userId }); },
+      (trip) => { if (active) setTripResult({ trip, reloadCount, userId }); },
+      (error) => { if (active) setTripResult({ error, reloadCount, userId }); },
     );
     return () => { active = false; };
-  }, [requestNumber, sessionLoading, tripId, userId]);
+  }, [reloadCount, sessionLoading, tripId, userId]);
 
-  const activeTripResult = tripResult?.userId === userId ? tripResult : null;
-  const trip = activeTripResult?.trip;
+  // Hide private trip data from a previous session when the active user changes.
+  const currentTripResult = tripResult?.userId === userId ? tripResult : null;
+  const trip = currentTripResult?.trip;
   const isOwner = Boolean(userId && trip?.organizer_id === userId);
-  const checkMembership = Boolean(trip && userId && !isOwner);
+  const shouldLoadMembership = Boolean(trip && userId && !isOwner);
 
   useEffect(() => {
-    if (!checkMembership) return;
+    if (!shouldLoadMembership) return;
     let active = true;
     getMyParticipation(tripId, userId).then(
-      (participation) => { if (active) setMembership({ participation, userId, requestNumber }); },
-      (error) => { if (active) setMembership({ error, userId, requestNumber }); },
+      (participation) => { if (active) setMembershipResult({ participation, userId, reloadCount }); },
+      (error) => { if (active) setMembershipResult({ error, userId, reloadCount }); },
     );
     return () => { active = false; };
-  }, [checkMembership, requestNumber, tripId, userId]);
+  }, [shouldLoadMembership, reloadCount, tripId, userId]);
 
-  const membershipReady = membership?.userId === userId && membership?.requestNumber === requestNumber;
-  const busy = pending || activeTripResult?.requestNumber !== requestNumber;
+  const hasCurrentMembershipResult = membershipResult?.userId === userId && membershipResult?.reloadCount === reloadCount;
+  const isLoadingOrSaving = isSaving || currentTripResult?.reloadCount !== reloadCount;
 
   function reloadDetails() {
-    setRequestNumber((previous) => previous + 1);
+    // The new count reloads the details and the participants panel together.
+    setReloadCount((previous) => previous + 1);
   }
 
-  async function handleMembershipChange(change, participantId) {
-    if (busy || !userId) return;
-    if (["approved", "rejected", "removed"].includes(change) && !isOwner) return;
-    if (change === "removed" && !window.confirm(text.confirmRemove)) return;
+  async function handleParticipantAction(action, participantId) {
+    if (isLoadingOrSaving || !userId) return;
+    if (["approved", "rejected", "removed"].includes(action) && !isOwner) return;
+    if (action === "removed" && !window.confirm(text.confirmRemove)) return;
 
-    setPending(true);
+    setIsSaving(true);
     setActionError(null);
     setNotice(null);
     try {
-      if (change === "requested") await requestTrip(tripId, userId);
-      else if (change === "approved" || change === "rejected") {
-        await updateParticipantStatus(tripId, participantId, change);
+      if (action === "requested") await requestToJoinTrip(tripId, userId);
+      else if (action === "approved" || action === "rejected") {
+        await updateParticipantStatus(tripId, participantId, action);
       } else {
         await removeParticipant(tripId, participantId);
       }
-      setNotice(change);
+      setNotice(action);
     } catch (error) {
       setActionError(error);
     } finally {
       reloadDetails();
-      setPending(false);
+      setIsSaving(false);
     }
   }
 
   async function handleDeleteTrip() {
-    if (!isOwner || busy || !window.confirm(text.confirmDelete)) return;
+    if (!isOwner || isLoadingOrSaving || !window.confirm(text.confirmDelete)) return;
 
-    setPending(true);
+    setIsSaving(true);
     setActionError(null);
     setNotice(null);
     try {
@@ -91,27 +93,27 @@ function TripDetails({ user, text, language, loginPath }) {
     } catch (error) {
       setActionError(error);
     } finally {
-      setPending(false);
+      setIsSaving(false);
     }
   }
 
-  const number = new Intl.NumberFormat(language);
+  const numberFormatter = new Intl.NumberFormat(language);
   const backLink = <Link className="trip-back" to="/trips">{text.back}</Link>;
 
   if (!trip) {
     return (
       <section className="trip-panel">
         {backLink}
-        {busy && <p role="status">{text.loading}</p>}
-        {!busy && activeTripResult?.error && (
-          <TripLoadError error={activeTripResult.error} text={text} fallback="trip" onRetry={reloadDetails} />
+        {isLoadingOrSaving && <p role="status">{text.loading}</p>}
+        {!isLoadingOrSaving && currentTripResult?.error && (
+          <TripLoadError error={currentTripResult.error} text={text} fallback="trip" onRetry={reloadDetails} />
         )}
-        {!busy && !activeTripResult?.error && <p role="alert">{text.notFound}</p>}
+        {!isLoadingOrSaving && !currentTripResult?.error && <p role="alert">{text.notFound}</p>}
       </section>
     );
   }
 
-  const hasCount = trip.current_participants !== null;
+  const hasApprovedCount = trip.current_participants !== null;
   const organizer = isOwner ? text.you : text.organizer + " · " + trip.organizer_id.slice(0, 8);
 
   return (
@@ -126,44 +128,44 @@ function TripDetails({ user, text, language, loginPath }) {
           <div><dt>{text.ends}</dt><dd><time dateTime={trip.ends_at}>{formatTripDate(trip.ends_at, language)}</time></dd></div>
           <div><dt>{text.type}</dt><dd>{text.types[trip.trip_type] ?? text.unspecified}</dd></div>
           <div><dt>{text.organizer}</dt><dd><bdi>{organizer}</bdi></dd></div>
-          <div><dt>{text.maxParticipants}</dt><dd>{number.format(trip.max_participants)}</dd></div>
-          <div><dt>{text.currentParticipants}</dt><dd>{hasCount ? number.format(trip.current_participants) : text.countUnavailable}</dd></div>
-          <div><dt>{text.available}</dt><dd>{hasCount ? number.format(trip.max_participants - trip.current_participants) : text.countUnavailable}</dd></div>
+          <div><dt>{text.maxParticipants}</dt><dd>{numberFormatter.format(trip.max_participants)}</dd></div>
+          <div><dt>{text.currentParticipants}</dt><dd>{hasApprovedCount ? numberFormatter.format(trip.current_participants) : text.countUnavailable}</dd></div>
+          <div><dt>{text.available}</dt><dd>{hasApprovedCount ? numberFormatter.format(trip.max_participants - trip.current_participants) : text.countUnavailable}</dd></div>
         </dl>
         <h2>{text.description}</h2>
         <p className="trip-description" dir="auto">{trip.description || text.noDescription}</p>
 
         {notice && <p className="trip-message trip-success" role="status">{text[notice]}</p>}
-        {actionError && <p className="trip-message trip-error" role="alert">{getActionError(actionError, text, "action")}</p>}
-        {(busy || (checkMembership && !membershipReady)) && <p role="status">{text.working}</p>}
-        {checkMembership && membershipReady && membership.error && (
-          <TripLoadError error={membership.error} text={text} fallback="membership" onRetry={reloadDetails} />
+        {actionError && <p className="trip-message trip-error" role="alert">{getActionErrorMessage(actionError, text, "action")}</p>}
+        {(isLoadingOrSaving || (shouldLoadMembership && !hasCurrentMembershipResult)) && <p role="status">{text.working}</p>}
+        {shouldLoadMembership && hasCurrentMembershipResult && membershipResult.error && (
+          <TripLoadError error={membershipResult.error} text={text} fallback="membership" onRetry={reloadDetails} />
         )}
 
         <div className="trip-actions">
           {isOwner && (
             <>
-              {!busy && <Link className="trip-button" to={"/trips/" + tripId + "/edit"}>{text.edit}</Link>}
-              <button className="trip-button trip-secondary" type="button" aria-expanded={manageParticipants}
-                onClick={() => setManageParticipants(!manageParticipants)} disabled={busy}>
-                {manageParticipants ? text.hideParticipants : text.manage}
+              {!isLoadingOrSaving && <Link className="trip-button" to={"/trips/" + tripId + "/edit"}>{text.edit}</Link>}
+              <button className="trip-button trip-secondary" type="button" aria-expanded={showParticipants}
+                onClick={() => setShowParticipants(!showParticipants)} disabled={isLoadingOrSaving}>
+                {showParticipants ? text.hideParticipants : text.manage}
               </button>
-              <button className="trip-button trip-danger" type="button" onClick={handleDeleteTrip} disabled={busy}>{text.delete}</button>
+              <button className="trip-button trip-danger" type="button" onClick={handleDeleteTrip} disabled={isLoadingOrSaving}>{text.delete}</button>
             </>
           )}
-          {user !== undefined && !isOwner && (!checkMembership || (membershipReady && !membership.error)) && (
-            <JoinTrip trip={trip} user={user} participation={checkMembership ? membership.participation : null} text={text}
-              loginPath={loginPath} disabled={busy} onRequest={() => handleMembershipChange("requested")}
-              onRemove={handleMembershipChange} />
+          {user !== undefined && !isOwner && (!shouldLoadMembership || (hasCurrentMembershipResult && !membershipResult.error)) && (
+            <JoinTrip trip={trip} user={user} participation={shouldLoadMembership ? membershipResult.participation : null} text={text}
+              loginPath={loginPath} disabled={isLoadingOrSaving} onRequest={() => handleParticipantAction("requested")}
+              onRemove={handleParticipantAction} />
           )}
         </div>
       </section>
 
-      {isOwner && manageParticipants && (
-        <TripParticipants trip={trip} text={text} language={language} requestNumber={requestNumber}
-          disabled={busy} onChange={handleMembershipChange} />
+      {isOwner && showParticipants && (
+        <TripParticipants trip={trip} text={text} language={language} reloadCount={reloadCount}
+          disabled={isLoadingOrSaving} onParticipantAction={handleParticipantAction} />
       )}
-      <TripBudget participants={trip.current_participants} text={text} language={language} />
+      <TripBudget approvedParticipantCount={trip.current_participants} text={text} language={language} />
     </div>
   );
 }

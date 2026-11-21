@@ -9,47 +9,47 @@ function EditTrip({ user, text, loginPath }) {
   const detailsPath = "/trips/" + tripId;
   const userId = user?.id;
   const navigate = useNavigate();
-  const [requestNumber, setRequestNumber] = useState(0);
-  const [result, setResult] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [tripResult, setTripResult] = useState(null);
 
   useEffect(() => {
     if (!userId) return;
     let active = true;
 
     getTrip(tripId, userId).then(
-      (trip) => { if (active) setResult({ trip, userId }); },
-      (error) => { if (active) setResult({ error, userId }); },
+      (trip) => { if (active) setTripResult({ trip, userId }); },
+      (error) => { if (active) setTripResult({ error, userId }); },
     );
 
     return () => { active = false; };
-  }, [requestNumber, tripId, userId]);
+  }, [retryCount, tripId, userId]);
 
   function retry() {
-    setResult(null);
-    setRequestNumber(requestNumber + 1);
+    setTripResult(null);
+    setRetryCount(retryCount + 1);
   }
 
   async function handleEditTrip(values) {
-    if (!user || user.id !== result?.trip?.organizer_id) throw new Error("trip_sign_in_required");
+    if (!user || user.id !== tripResult?.trip?.organizer_id) throw new Error("trip_sign_in_required");
     await updateTrip(tripId, values);
     navigate(detailsPath, { replace: true, state: { notice: "updated" } });
   }
 
-  const ready = result && result.userId === userId;
+  const hasTripResult = tripResult && tripResult.userId === userId;
 
   return (
     <section className="create-trip-page trip-panel">
       <h1>{text.edit}</h1>
       {user === null && <TripSignIn text={text} loginPath={loginPath} backTo={detailsPath} />}
-      {(user === undefined || (user && !ready)) && <p role="status">{text.loading}</p>}
-      {user && ready && (
-        result.error ? <TripLoadError error={result.error} text={text} fallback="trip" onRetry={retry} />
-          : result.trip?.organizer_id === userId
-            ? <TripForm key={userId} trip={result.trip} text={text} typeSupported={result.trip.typeSupported}
+      {(user === undefined || (user && !hasTripResult)) && <p role="status">{text.loading}</p>}
+      {user && hasTripResult && (
+        tripResult.error ? <TripLoadError error={tripResult.error} text={text} fallback="trip" onRetry={retry} />
+          : tripResult.trip?.organizer_id === userId
+            ? <TripForm key={userId} trip={tripResult.trip} text={text} typeSupported={tripResult.trip.typeSupported}
                 onSave={handleEditTrip} cancelTo={detailsPath} />
             : <>
-                <p role="alert">{result.trip ? text.ownerOnly : text.notFound}</p>
-                <Link className="trip-button trip-secondary" to={result.trip ? detailsPath : "/trips"}>{text.cancel}</Link>
+                <p role="alert">{tripResult.trip ? text.ownerOnly : text.notFound}</p>
+                <Link className="trip-button trip-secondary" to={tripResult.trip ? detailsPath : "/trips"}>{text.cancel}</Link>
               </>
       )}
     </section>

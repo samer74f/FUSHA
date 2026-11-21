@@ -7,18 +7,18 @@ import { createTrip, getTripTypeSupport } from "../../services/tripService";
 function CreateTrip({ user, text, loginPath }) {
   const navigate = useNavigate();
   const userId = user?.id;
-  const [schema, setSchema] = useState(null);
-  const [requestNumber, setRequestNumber] = useState(0);
+  const [tripTypeCheck, setTripTypeCheck] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!userId) return;
     let active = true;
     getTripTypeSupport().then(
-      (typeSupported) => { if (active) setSchema({ typeSupported }); },
-      (error) => { if (active) setSchema({ error }); },
+      (typeSupported) => { if (active) setTripTypeCheck({ typeSupported }); },
+      (error) => { if (active) setTripTypeCheck({ error }); },
     );
     return () => { active = false; };
-  }, [requestNumber, userId]);
+  }, [retryCount, userId]);
 
   async function handleCreateTrip(values) {
     if (!user) throw new Error("trip_sign_in_required");
@@ -27,18 +27,18 @@ function CreateTrip({ user, text, loginPath }) {
   }
 
   function retry() {
-    setSchema(null);
-    setRequestNumber(requestNumber + 1);
+    setTripTypeCheck(null);
+    setRetryCount(retryCount + 1);
   }
 
   return (
     <section className="create-trip-page trip-panel">
       <h1>{text.create}</h1>
-      {(user === undefined || (user && !schema)) && <p role="status">{text.loading}</p>}
+      {(user === undefined || (user && !tripTypeCheck)) && <p role="status">{text.loading}</p>}
       {user === null && <TripSignIn text={text} loginPath={loginPath} backTo="/trips" />}
-      {user && schema?.error && <TripLoadError error={schema.error} text={text} fallback="load" onRetry={retry} />}
-      {user && schema && !schema.error && (
-        <TripForm text={text} typeSupported={schema.typeSupported} onSave={handleCreateTrip} cancelTo="/trips" />
+      {user && tripTypeCheck?.error && <TripLoadError error={tripTypeCheck.error} text={text} fallback="load" onRetry={retry} />}
+      {user && tripTypeCheck && !tripTypeCheck.error && (
+        <TripForm text={text} typeSupported={tripTypeCheck.typeSupported} onSave={handleCreateTrip} cancelTo="/trips" />
       )}
     </section>
   );
