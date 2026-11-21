@@ -1,7 +1,5 @@
-function App() {
-  return (
-    <h1>FUSHA</h1>
-  )
-}
+import EquipmentPage from './pages/equipment/EquipmentPage'
 
-export default App
+export default function App() {
+  return <EquipmentPage />
+}
