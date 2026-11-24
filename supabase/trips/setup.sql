@@ -1,164 +1,151 @@
--- Draft for a project without Trips tables. Run inspect.sql first and review with the team.
+-- Bootstrap Trips in a disposable Supabase database with Auth and profiles(id).
+-- For the team's existing database use inspect.sql and review prepare_existing.sql.
 begin;
-
--- Capture the display name from the signed-in user's metadata, without reading profiles.
-create function public.trip_account_display_name()
-returns text
-language sql
-stable
-set search_path = ''
-as $$
-  select left(coalesce(
-    nullif(btrim(auth.jwt() -> 'user_metadata' ->> 'display_name'), ''),
-    nullif(btrim(auth.jwt() -> 'user_metadata' ->> 'full_name'), ''),
-    nullif(btrim(auth.jwt() -> 'user_metadata' ->> 'name'), '')
-  ), 80);
-$$;
 
 create table public.trips (
   id uuid primary key default gen_random_uuid(),
-  title text not null check (char_length(btrim(title)) between 1 and 120),
-  location text not null check (char_length(btrim(location)) between 1 and 160),
-  date date not null check (date between date '0001-01-01' and date '9999-12-31'),
-  trip_type text not null check (trip_type in ('Individual', 'Family', 'Group')),
-  max_participants integer not null,
-  description text not null default '' check (char_length(description) <= 2000),
-  organizer_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  organizer_name text default public.trip_account_display_name(),
-  current_participants integer not null default 1,
+  organizer_id uuid not null references public.profiles(id),
+  title text not null,
+  description text not null,
+  starts_at timestamptz not null,
+  ends_at timestamptz not null,
+  meeting_point text,
+  capacity integer not null check (capacity > 0),
+  status text not null default 'draft' check (status in ('draft', 'open', 'full', 'cancelled', 'completed')),
   created_at timestamptz not null default now(),
-  constraint trips_capacity check (current_participants between 1 and max_participants),
-  constraint trips_members_require_group check (trip_type = 'Group' or current_participants = 1)
+  check (ends_at > starts_at)
 );
 
 create table public.trip_participants (
-  trip_id uuid references public.trips(id) on delete cascade,
-  user_id uuid references auth.users(id) on delete cascade,
-  participant_name text default public.trip_account_display_name(),
-  joined_at timestamptz not null default now(),
-  primary key (trip_id, user_id)
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references public.trips(id) on delete cascade,
+  profile_id uuid not null references public.profiles(id),
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'cancelled')),
+  created_at timestamptz not null default now(),
+  unique (trip_id, profile_id)
 );
 
-create index trips_date_id_idx on public.trips (date, id);
-create index trips_organizer_id_idx on public.trips (organizer_id);
-create index trip_participants_user_id_idx on public.trip_participants (user_id);
+create index trips_starts_at_id_idx on public.trips (starts_at, id);
+create index trip_participants_trip_status_idx on public.trip_participants (trip_id, status);
 
 alter table public.trips enable row level security;
 alter table public.trip_participants enable row level security;
 
 revoke all on public.trips, public.trip_participants from public, anon, authenticated;
 grant select on public.trips to anon, authenticated;
-grant insert (title, location, date, trip_type, max_participants, description),
-      update (title, location, date, trip_type, max_participants, description),
-      delete on public.trips to authenticated;
 grant select on public.trip_participants to authenticated;
+grant insert, update, delete on public.trips to authenticated;
+grant insert (trip_id, profile_id, status), update (status), delete
+  on public.trip_participants to authenticated;
 
-create policy "Anyone can read trips" on public.trips
-  for select to anon, authenticated using (true);
+create policy "Visible trips" on public.trips
+  for select to anon, authenticated
+  using (status <> 'draft' or organizer_id = (select auth.uid()));
 
-create policy "Users can create their own trips" on public.trips
+create policy "Organizers create their trips" on public.trips
   for insert to authenticated with check (organizer_id = (select auth.uid()));
 
-create policy "Organizers can edit their own trips" on public.trips
+create policy "Organizers edit their trips" on public.trips
   for update to authenticated
   using (organizer_id = (select auth.uid()))
   with check (organizer_id = (select auth.uid()));
 
-create policy "Organizers can delete their own trips" on public.trips
+create policy "Organizers delete their trips" on public.trips
   for delete to authenticated using (organizer_id = (select auth.uid()));
 
-create policy "Members see themselves and organizers see their roster"
-  on public.trip_participants for select to authenticated using (
-    user_id = (select auth.uid()) or exists (
+create policy "Members and organizers read requests" on public.trip_participants
+  for select to authenticated using (
+    profile_id = (select auth.uid()) or exists (
       select 1 from public.trips
       where trips.id = trip_participants.trip_id and trips.organizer_id = (select auth.uid())
     )
   );
 
-create function public.join_trip(p_trip_id uuid)
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  caller_id uuid := auth.uid();
-  selected_trip public.trips%rowtype;
-begin
-  if caller_id is null then
-    raise exception using errcode = '42501', message = 'trip_sign_in_required';
-  end if;
+create policy "Members request open trips" on public.trip_participants
+  for insert to authenticated with check (
+    profile_id = (select auth.uid()) and status = 'pending' and exists (
+      select 1 from public.trips
+      where trips.id = trip_participants.trip_id and trips.status = 'open'
+        and trips.organizer_id <> (select auth.uid())
+    )
+  );
 
-  -- Keep membership and capacity changes for the same trip in order.
-  select * into selected_trip from public.trips where id = p_trip_id for update;
-  if not found then raise exception 'trip_not_found'; end if;
+create policy "Organizers decide requests" on public.trip_participants
+  for update to authenticated
+  using (status = 'pending' and exists (
+    select 1 from public.trips
+    where trips.id = trip_participants.trip_id and trips.organizer_id = (select auth.uid())
+  ))
+  with check (status in ('approved', 'rejected') and exists (
+    select 1 from public.trips
+    where trips.id = trip_participants.trip_id and trips.organizer_id = (select auth.uid())
+  ));
 
-  if caller_id = selected_trip.organizer_id or exists (
-    select 1 from public.trip_participants where trip_id = p_trip_id and user_id = caller_id
-  ) then
-    raise exception 'trip_already_joined';
-  end if;
+create policy "Members and organizers remove requests or memberships" on public.trip_participants
+  for delete to authenticated using (
+    profile_id = (select auth.uid()) or exists (
+      select 1 from public.trips
+      where trips.id = trip_participants.trip_id and trips.organizer_id = (select auth.uid())
+    )
+  );
 
-  if selected_trip.trip_type <> 'Group'
-    or selected_trip.date < (statement_timestamp() at time zone 'Asia/Hebron')::date then
-    raise exception 'trip_closed';
-  end if;
-
-  if selected_trip.current_participants >= selected_trip.max_participants then
-    raise exception 'trip_full';
-  end if;
-
-  insert into public.trip_participants (trip_id, user_id) values (p_trip_id, caller_id);
-  update public.trips set current_participants = current_participants + 1 where id = p_trip_id;
-end;
-$$;
-
-create function public.remove_trip_participant(p_trip_id uuid, p_user_id uuid)
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  caller_id uuid := auth.uid();
-  trip_owner uuid;
-begin
-  if caller_id is null or p_user_id is null then
-    raise exception using errcode = '42501', message = 'trip_sign_in_required';
-  end if;
-
-  select organizer_id into trip_owner from public.trips where id = p_trip_id for update;
-  if not found then raise exception 'trip_not_found'; end if;
-
-  if caller_id <> p_user_id and caller_id <> trip_owner then
-    raise exception using errcode = '42501', message = 'trip_remove_not_allowed';
-  end if;
-
-  delete from public.trip_participants where trip_id = p_trip_id and user_id = p_user_id;
-end;
-$$;
-
--- Also keep the counter correct if Auth deletes a user and cascades their memberships.
-create function public.decrease_trip_participants()
+create function public.enforce_trip_capacity()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  trip_capacity integer;
+  approved_count integer;
 begin
-  update public.trips set current_participants = current_participants - 1 where id = old.trip_id;
-  return old;
+  if new.status <> 'approved' then
+    return new;
+  end if;
+
+  -- Serialize approvals for this trip and hold the lock through the count and write.
+  select capacity into trip_capacity from public.trips where id = new.trip_id for update;
+  if not found then
+    raise exception 'Trip does not exist';
+  end if;
+
+  select count(*) into approved_count from public.trip_participants
+  where trip_id = new.trip_id and status = 'approved' and id <> new.id;
+  if approved_count >= trip_capacity then
+    raise exception 'Trip capacity has been reached';
+  end if;
+
+  return new;
 end;
 $$;
 
-create trigger trip_participant_deleted
-after delete on public.trip_participants
-for each row execute function public.decrease_trip_participants();
+create function public.check_trip_capacity_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  approved_count integer;
+begin
+  if new.capacity < old.capacity then
+    select count(*) into approved_count from public.trip_participants
+    where trip_id = new.id and status = 'approved';
+    if approved_count > new.capacity then
+      raise exception 'Capacity cannot be lower than the approved participant count';
+    end if;
+  end if;
+  return new;
+end;
+$$;
 
-revoke execute on function public.trip_account_display_name(), public.join_trip(uuid),
-  public.remove_trip_participant(uuid, uuid), public.decrease_trip_participants()
+create trigger trip_capacity_approval before insert or update of status on public.trip_participants
+  for each row execute function public.enforce_trip_capacity();
+
+create trigger trip_capacity_change before update of capacity on public.trips
+  for each row execute function public.check_trip_capacity_change();
+
+revoke execute on function public.enforce_trip_capacity(), public.check_trip_capacity_change()
   from public, anon, authenticated;
-grant execute on function public.trip_account_display_name(), public.join_trip(uuid),
-  public.remove_trip_participant(uuid, uuid) to authenticated;
 
 commit;

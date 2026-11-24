@@ -70,7 +70,8 @@ function TripDetails({ user, text, language, loginPath }) {
       else if (action === "approved" || action === "rejected") {
         await updateParticipantStatus(tripId, participantId, action);
       } else {
-        await removeParticipant(tripId, participantId);
+        const expectedStatus = { withdrawn: "pending", left: "approved" }[action];
+        await removeParticipant(tripId, participantId, expectedStatus);
       }
       setNotice(action);
     } catch (error) {

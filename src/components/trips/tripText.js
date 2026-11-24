@@ -92,6 +92,7 @@ export const tripText = {
       action: "Could not complete this action. Try again.",
       access: "Your session or permissions do not allow this action.",
       alreadyRequested: "You already have a request for this trip.",
+      participationChanged: "Participation changed. Check the current status before trying again.",
       profileRequired: "Set up your FUSHA profile to use this feature.",
     },
   },
@@ -186,6 +187,7 @@ export const tripText = {
       action: "تعذّر تنفيذ العملية. حاول مرة أخرى.",
       access: "جلستك أو صلاحياتك لا تسمح بتنفيذ هذه العملية.",
       alreadyRequested: "عندك طلب لهذه الرحلة بالفعل.",
+      participationChanged: "تغيّرت حالة المشاركة. راجع الحالة الحالية قبل المحاولة مرة أخرى.",
       profileRequired: "أكمِل ملفك الشخصي في فُسحة لاستخدام هذه الميزة.",
     },
   },
@@ -209,6 +211,7 @@ export function getActionErrorMessage(error, text, fallback) {
     case "Capacity cannot be lower than the approved participant count": return text.invalidCapacity;
     case "Trip does not exist": return text.notFound;
     case "trip_sign_in_required": return text.errors.access;
+    case "trip_participation_changed": return text.errors.participationChanged;
   }
 
   if (error.code === "23505" && error.message.includes("trip_participants_trip_id_profile_id_key")) {
