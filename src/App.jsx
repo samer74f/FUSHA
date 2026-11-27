@@ -17,21 +17,21 @@ function HomePage() {
   const { user } = useAuth()
 
   return (
-    <main className="auth-page" dir="rtl">
+    <main className="auth-page" dir="ltr">
       <section className="auth-home">
         <p className="auth-brand-mark" aria-hidden="true">F</p>
         <h1>FUSHA</h1>
-        <p>اكتشف أماكن جديدة، وخطط لرحلتك القادمة، وانضم إلى مجتمع المغامرات الخارجية.</p>
+        <p>Discover new places, plan your next trip, and join a community of outdoor adventurers.</p>
         <div className="auth-home-actions">
           {user ? (
             <>
-              <Link className="auth-home-link auth-home-link-primary" to="/store">دخول إلى المتجر</Link>
-              <Link className="auth-home-link" to="/profile">ملفي الشخصي</Link>
+              <Link className="auth-home-link auth-home-link-primary" to="/store">Visit the store</Link>
+              <Link className="auth-home-link" to="/profile">My profile</Link>
             </>
           ) : (
             <>
-              <Link className="auth-home-link auth-home-link-primary" to="/register">إنشاء حساب</Link>
-              <Link className="auth-home-link" to="/login">تسجيل الدخول</Link>
+              <Link className="auth-home-link auth-home-link-primary" to="/register">Create an account</Link>
+              <Link className="auth-home-link" to="/login">Sign in</Link>
             </>
           )}
         </div>

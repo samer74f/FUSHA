@@ -7,22 +7,22 @@ function getFriendlyError(error) {
   const message = error?.message?.toLowerCase() ?? ''
 
   if (message.includes('invalid login credentials')) {
-    return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+    return 'The email address or password is incorrect.'
   }
 
   if (message.includes('user already registered')) {
-    return 'هذا البريد مسجل مسبقاً. جرّب تسجيل الدخول.'
+    return 'An account already uses this email address. Try signing in.'
   }
 
   if (message.includes('password')) {
-    return 'تحقق من كلمة المرور، وتأكد أنها لا تقل عن 6 أحرف.'
+    return 'Make sure your password is at least 6 characters long.'
   }
 
   if (message.includes('email')) {
-    return 'تحقق من صحة البريد الإلكتروني.'
+    return 'Check that your email address is correct.'
   }
 
-  return 'تعذر إكمال العملية. حاول مرة أخرى بعد قليل.'
+  return 'We could not complete your request. Try again in a moment.'
 }
 
 function isValidEmail(email) {
@@ -48,22 +48,22 @@ export default function AuthForm({ mode }) {
     setSuccessMessage('')
 
     if (!isValidEmail(email.trim())) {
-      setErrorMessage('أدخل بريداً إلكترونياً صحيحاً.')
+      setErrorMessage('Enter a valid email address.')
       return
     }
 
     if (password.length < 6) {
-      setErrorMessage('يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.')
+      setErrorMessage('Your password must be at least 6 characters long.')
       return
     }
 
     if (isRegister && fullName.trim().length < 2) {
-      setErrorMessage('أدخل اسمك (حرفان على الأقل).')
+      setErrorMessage('Enter your name with at least 2 characters.')
       return
     }
 
     if (isRegister && password !== confirmPassword) {
-      setErrorMessage('كلمتا المرور غير متطابقتين.')
+      setErrorMessage('The passwords do not match.')
       return
     }
 
@@ -81,49 +81,49 @@ export default function AuthForm({ mode }) {
       if (result.error) {
         setErrorMessage(getFriendlyError(result.error))
       } else if (isRegister && !result.data.session) {
-        setSuccessMessage('تم إنشاء الحساب. افتح بريدك لتأكيد التسجيل ثم سجّل الدخول.')
+        setSuccessMessage('Your account is ready. Check your email to confirm your registration, then sign in.')
       } else {
         const nextPath = location.state?.from?.pathname ?? '/profile'
         navigate(nextPath, { replace: true })
       }
     } catch {
-      setErrorMessage('تعذر الاتصال بالخدمة. تحقق من اتصال الإنترنت وحاول مجدداً.')
+      setErrorMessage('We could not connect. Check your internet connection and try again.')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <main className="auth-page" dir="rtl">
+    <main className="auth-page" dir="ltr">
       <section className="auth-card" aria-labelledby="auth-title">
-        <Link className="auth-brand" to="/" aria-label="العودة إلى FUSHA">
+        <Link className="auth-brand" to="/" aria-label="Return to FUSHA">
           <span className="auth-brand-mark" aria-hidden="true">F</span>
           <span>FUSHA</span>
         </Link>
-        <p className="auth-eyebrow">رحلتك تبدأ من هنا</p>
-        <h1 id="auth-title">{isRegister ? 'إنشاء حساب' : 'أهلاً بعودتك'}</h1>
+        <p className="auth-eyebrow">Your journey starts here</p>
+        <h1 id="auth-title">{isRegister ? 'Create an account' : 'Welcome back'}</h1>
         <p className="auth-description">
           {isRegister
-            ? 'أنشئ حسابك لاكتشاف الرحلات والاستعداد لمغامرتك القادمة.'
-            : 'سجّل الدخول لمتابعة رحلاتك وحسابك.'}
+            ? 'Create an account to discover trips and prepare for your next adventure.'
+            : 'Sign in to access your trips and account.'}
         </p>
 
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           {isRegister && (
             <label className="auth-field">
-              <span>الاسم الكامل</span>
+              <span>Full name</span>
               <input
                 autoComplete="name"
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                placeholder="مثال: يوسف أحمد"
+                placeholder="Example: Alex Taylor"
                 required
               />
             </label>
           )}
 
           <label className="auth-field">
-            <span>البريد الإلكتروني</span>
+            <span>Email address</span>
             <input
               autoComplete="email"
               type="email"
@@ -136,26 +136,26 @@ export default function AuthForm({ mode }) {
           </label>
 
           <label className="auth-field">
-            <span>كلمة المرور</span>
+            <span>Password</span>
             <input
               autoComplete={isRegister ? 'new-password' : 'current-password'}
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="6 أحرف على الأقل"
+              placeholder="At least 6 characters"
               required
             />
           </label>
 
           {isRegister && (
             <label className="auth-field">
-              <span>تأكيد كلمة المرور</span>
+              <span>Confirm password</span>
               <input
                 autoComplete="new-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="أعد كتابة كلمة المرور"
+                placeholder="Enter your password again"
                 required
               />
             </label>
@@ -165,14 +165,14 @@ export default function AuthForm({ mode }) {
           {successMessage && <p className="auth-alert auth-alert-success" role="status">{successMessage}</p>}
 
           <button className="auth-submit" type="submit" disabled={submitting}>
-            {submitting ? 'جارٍ الإرسال…' : isRegister ? 'إنشاء الحساب' : 'تسجيل الدخول'}
+            {submitting ? 'Submitting…' : isRegister ? 'Create account' : 'Sign in'}
           </button>
         </form>
 
         <p className="auth-switch">
-          {isRegister ? 'لديك حساب بالفعل؟' : 'ليس لديك حساب؟'}{' '}
+          {isRegister ? 'Already have an account?' : 'Need an account?'}{' '}
           <Link to={isRegister ? '/login' : '/register'}>
-            {isRegister ? 'سجّل الدخول' : 'أنشئ حساباً'}
+            {isRegister ? 'Sign in' : 'Create an account'}
           </Link>
         </p>
       </section>

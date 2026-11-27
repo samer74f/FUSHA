@@ -505,8 +505,8 @@
 .order-status-processing { color: #3d6485; background: #eaf3fb; }
 
 .order-item-line {
-  padding-right: 10px;
-  border-right: 2px solid #dce7d7;
+  padding-inline-start: 10px;
+  border-inline-start: 2px solid #dce7d7;
   font-size: 0.9rem;
 }
 

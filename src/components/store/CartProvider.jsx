@@ -43,7 +43,7 @@ export function CartProvider({ children }) {
             .filter((row) => row.product)
             .map((row) => ({ product: row.product, quantity: row.quantity }))
         } catch {
-          notice = 'تعذر مزامنة السلة مع Supabase؛ تُحفظ حالياً على هذا الجهاز.'
+          notice = 'We could not sync your cart with Supabase. Your cart is saved on this device.'
         }
       }
 
@@ -79,7 +79,7 @@ export function CartProvider({ children }) {
     } catch {
       setCartState((current) => ({
         ...current,
-        notice: 'لم تتم مزامنة السلة مع قاعدة البيانات؛ بقيت محفوظة على هذا الجهاز.',
+        notice: 'Your cart could not sync with the database. It is still saved on this device.',
       }))
     }
   }
@@ -93,17 +93,17 @@ export function CartProvider({ children }) {
 
   function addItem(product) {
     if (cartState.loading || cartState.storageKey !== storageKey) {
-      return 'جارٍ تجهيز سلتك. حاول مجدداً بعد لحظات.'
+      return 'Your cart is loading. Try again in a moment.'
     }
 
     if (!Number.isInteger(Number(product.stock)) || Number(product.stock) <= 0) {
-      return 'هذا المنتج غير متوفر حالياً.'
+      return 'This product is currently unavailable.'
     }
 
     const existingItem = items.find((item) => item.product.id === product.id)
 
     if (existingItem && existingItem.quantity >= Number(product.stock)) {
-      return 'وصلت إلى الحد المتوفر من هذا المنتج.'
+      return 'Your cart already contains all the available stock for this product.'
     }
 
     updateItems((currentItems) => {
@@ -127,13 +127,13 @@ export function CartProvider({ children }) {
 
   function setQuantity(productId, quantity) {
     if (!Number.isInteger(quantity) || quantity < 1) {
-      return 'يجب أن تكون الكمية رقماً صحيحاً أكبر من صفر.'
+      return 'Enter a whole number greater than zero.'
     }
 
     const item = items.find((cartItem) => cartItem.product.id === productId)
 
-    if (!item) return 'لم نعثر على المنتج في السلة.'
-    if (quantity > Number(item.product.stock)) return 'الكمية المطلوبة أكبر من المخزون المتوفر.'
+    if (!item) return 'We could not find this product in your cart.'
+    if (quantity > Number(item.product.stock)) return 'The requested quantity exceeds the available stock.'
 
     updateItems((currentItems) =>
       currentItems.map((cartItem) =>
@@ -152,9 +152,9 @@ export function CartProvider({ children }) {
     if (user?.id) {
       supabase.from('cart_items').delete().eq('user_id', user.id).eq('product_id', productId)
         .then(({ error }) => {
-          if (error) setCartState((current) => ({ ...current, notice: 'تعذر تحديث السلة المحفوظة في قاعدة البيانات.' }))
+          if (error) setCartState((current) => ({ ...current, notice: 'We could not update the cart saved in the database.' }))
         })
-        .catch(() => setCartState((current) => ({ ...current, notice: 'تعذر الاتصال لحذف المنتج من السلة المحفوظة.' })))
+        .catch(() => setCartState((current) => ({ ...current, notice: 'We could not connect to remove the product from your saved cart.' })))
     }
   }
 
@@ -164,9 +164,9 @@ export function CartProvider({ children }) {
     if (user?.id) {
       supabase.from('cart_items').delete().eq('user_id', user.id)
         .then(({ error }) => {
-          if (error) setCartState((current) => ({ ...current, notice: 'تعذر تفريغ السلة المحفوظة في قاعدة البيانات.' }))
+          if (error) setCartState((current) => ({ ...current, notice: 'We could not clear the cart saved in the database.' }))
         })
-        .catch(() => setCartState((current) => ({ ...current, notice: 'تعذر الاتصال لتفريغ السلة المحفوظة.' })))
+        .catch(() => setCartState((current) => ({ ...current, notice: 'We could not connect to clear your saved cart.' })))
     }
   }
 

@@ -7,10 +7,10 @@ import './profile.css'
 
 function getProfileError(error) {
   if (error?.code === '42501') {
-    return 'لا تسمح صلاحيات قاعدة البيانات بقراءة هذا الملف الشخصي.'
+    return 'You do not have permission to view this profile.'
   }
 
-  return 'تعذر تحميل الملف الشخصي. تحقق من الاتصال وحاول مرة أخرى.'
+  return 'We could not load your profile. Check your connection and try again.'
 }
 
 export default function ProfilePage() {
@@ -54,7 +54,7 @@ export default function ProfilePage() {
           if (!isMounted) return
 
           if (createError) {
-            setErrorMessage('لم نجد سجلاً لملفك الشخصي، وتعذر إنشاؤه. تحقق من سياسات RLS.')
+            setErrorMessage('We could not load your profile. Try again in a moment.')
           } else {
             setProfile(newProfile)
             setFullName(newProfile.full_name ?? '')
@@ -64,7 +64,7 @@ export default function ProfilePage() {
           setFullName(data.full_name ?? user.user_metadata?.full_name ?? '')
         }
       } catch {
-        if (isMounted) setErrorMessage('تعذر الاتصال لتحميل ملفك الشخصي. حاول مرة أخرى.')
+        if (isMounted) setErrorMessage('We could not connect to load your profile. Try again.')
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -87,12 +87,12 @@ export default function ProfilePage() {
     const cleanName = fullName.trim()
 
     if (cleanName.length < 2) {
-      setErrorMessage('أدخل اسماً من حرفين على الأقل.')
+      setErrorMessage('Enter a name with at least 2 characters.')
       return
     }
 
     if (!profile) {
-      setErrorMessage('لا يوجد سجل محفوظ لتعديله. اطلب تهيئة ملفك في جدول profiles أولاً.')
+      setErrorMessage('Ask the project administrator to create your profile in the profiles table before editing it.')
       return
     }
 
@@ -107,16 +107,16 @@ export default function ProfilePage() {
         .maybeSingle()
 
       if (error) {
-        setErrorMessage('تعذر حفظ التعديلات. تحقق من صلاحيات RLS وحاول مرة أخرى.')
+        setErrorMessage('We could not save your profile. Try again in a moment.')
       } else if (!data) {
-        setErrorMessage('لم يتم تحديث الملف. قد تمنع سياسات RLS هذا التعديل.')
+        setErrorMessage('Your changes were not saved. Reload the page and try again.')
       } else {
         setProfile(data)
         setFullName(data.full_name ?? '')
-        setSuccessMessage('تم حفظ اسمك في الملف الشخصي.')
+        setSuccessMessage('Your profile name was saved.')
       }
     } catch {
-      setErrorMessage('تعذر الاتصال لحفظ التعديلات. حاول مرة أخرى.')
+      setErrorMessage('We could not connect to save your changes. Try again.')
     } finally {
       setSaving(false)
     }
@@ -126,64 +126,64 @@ export default function ProfilePage() {
     try {
       const { error } = await signOut()
 
-      if (error) setErrorMessage('تعذر تسجيل الخروج. حاول مرة أخرى.')
+      if (error) setErrorMessage('We could not sign you out. Try again.')
     } catch {
-      setErrorMessage('تعذر الاتصال لتسجيل الخروج. حاول مرة أخرى.')
+      setErrorMessage('We could not connect to sign you out. Try again.')
     }
   }
 
   if (loading) {
     return (
-      <main className="auth-page" dir="rtl" aria-live="polite">
-        <p className="auth-message">جارٍ تحميل الملف الشخصي…</p>
+      <main className="auth-page" dir="ltr" aria-live="polite">
+        <p className="auth-message">Loading your profile…</p>
       </main>
     )
   }
 
   return (
-    <main className="auth-page" dir="rtl">
+    <main className="auth-page" dir="ltr">
       <section className="auth-card profile-card" aria-labelledby="profile-title">
         <Link className="auth-brand" to="/">
           <span className="auth-brand-mark" aria-hidden="true">F</span>
           <span>FUSHA</span>
         </Link>
-        <Link className="profile-store-link" to="/store">دخول إلى المتجر</Link>
+        <Link className="profile-store-link" to="/store">Visit the store</Link>
 
         <div className="profile-heading">
           {profile?.avatar_url ? (
-            <img className="profile-avatar" src={profile.avatar_url} alt="الصورة الشخصية" />
+            <img className="profile-avatar" src={profile.avatar_url} alt="Profile photo" />
           ) : (
             <div className="profile-avatar profile-avatar-placeholder" aria-hidden="true">
               {(fullName || user.email || 'F').slice(0, 1).toUpperCase()}
             </div>
           )}
           <div>
-            <p className="auth-eyebrow">ملفي الشخصي</p>
-            <h1 id="profile-title">أهلاً بك</h1>
+            <p className="auth-eyebrow">My profile</p>
+            <h1 id="profile-title">Welcome</h1>
           </div>
         </div>
 
         <dl className="profile-details">
           <div>
-            <dt>البريد الإلكتروني</dt>
+            <dt>Email address</dt>
             <dd dir="ltr">{user.email}</dd>
           </div>
           {profile?.created_at && (
             <div>
-              <dt>تاريخ إنشاء الملف</dt>
-              <dd>{new Date(profile.created_at).toLocaleDateString('ar')}</dd>
+              <dt>Profile created</dt>
+              <dd>{new Date(profile.created_at).toLocaleDateString('en-GB')}</dd>
             </div>
           )}
         </dl>
 
         <form className="auth-form" onSubmit={handleSave}>
           <label className="auth-field">
-            <span>الاسم الكامل</span>
+            <span>Full name</span>
             <input
               autoComplete="name"
               value={fullName}
               onChange={(event) => setFullName(event.target.value)}
-              placeholder="أدخل اسمك"
+              placeholder="Enter your name"
               required
             />
           </label>
@@ -192,12 +192,12 @@ export default function ProfilePage() {
           {successMessage && <p className="auth-alert auth-alert-success" role="status">{successMessage}</p>}
 
           <button className="auth-submit" type="submit" disabled={saving || !profile}>
-            {saving ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
+            {saving ? 'Saving…' : 'Save changes'}
           </button>
         </form>
 
         <button className="profile-logout" type="button" onClick={handleSignOut}>
-          تسجيل الخروج
+          Sign out
         </button>
       </section>
     </main>

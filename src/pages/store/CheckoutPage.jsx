@@ -18,12 +18,12 @@ export default function CheckoutPage() {
     setErrorMessage('')
 
     if (!items.length) {
-      setErrorMessage('السلة فارغة. أضف منتجاً قبل تأكيد الطلب.')
+      setErrorMessage('Your cart is empty. Add a product before placing an order.')
       return
     }
 
     if (recipientName.trim().length < 2 || !/^[+\d\s()-]{7,20}$/.test(phone.trim()) || deliveryAddress.trim().length < 5) {
-      setErrorMessage('تحقق من اسم المستلم ورقم الهاتف وعنوان التوصيل.')
+      setErrorMessage('Check the recipient name, phone number, and delivery address.')
       return
     }
 
@@ -38,13 +38,13 @@ export default function CheckoutPage() {
         items,
       })
     } catch {
-      setErrorMessage('تعذر معرفة نتيجة الطلب بسبب الاتصال. تحقق من صفحة طلباتي قبل المحاولة مرة أخرى.')
+      setErrorMessage('We could not confirm whether the order was placed. Check My orders before trying again.')
       setSubmitting(false)
       return
     }
 
     if (result.error) {
-      setErrorMessage('تعذر تأكيد الطلب. تأكد من إعداد جداول الطلبات ودالة place_order وسياسات RLS في Supabase.')
+      setErrorMessage('We could not place your order. Try again in a moment.')
       setSubmitting(false)
       return
     }
@@ -54,33 +54,33 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="store-page" dir="rtl">
+    <main className="store-page" dir="ltr">
       <header className="store-header">
-        <Link className="store-brand" to="/cart">FUSHA<span>إتمام الطلب</span></Link>
-        <Link to="/store">متابعة التسوق</Link>
+        <Link className="store-brand" to="/cart">FUSHA<span>Checkout</span></Link>
+        <Link to="/store">Continue shopping</Link>
       </header>
       <section className="checkout-layout">
         <form className="checkout-form" onSubmit={handleSubmit}>
-          <p className="store-eyebrow">لا يوجد دفع إلكتروني</p>
-          <h1>معلومات التوصيل</h1>
-          <label className="store-field"><span>اسم المستلم</span><input value={recipientName} onChange={(event) => setRecipientName(event.target.value)} required minLength={2} /></label>
-          <label className="store-field"><span>رقم الهاتف</span><input type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} required /></label>
-          <label className="store-field"><span>عنوان التوصيل</span><textarea value={deliveryAddress} onChange={(event) => setDeliveryAddress(event.target.value)} required minLength={5} rows="3" /></label>
+          <p className="store-eyebrow">No online payment</p>
+          <h1>Delivery information</h1>
+          <label className="store-field"><span>Recipient name</span><input value={recipientName} onChange={(event) => setRecipientName(event.target.value)} required minLength={2} /></label>
+          <label className="store-field"><span>Phone number</span><input type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} required /></label>
+          <label className="store-field"><span>Delivery address</span><textarea value={deliveryAddress} onChange={(event) => setDeliveryAddress(event.target.value)} required minLength={5} rows="3" /></label>
           {errorMessage && <p className="store-state-error" role="alert">{errorMessage}</p>}
           <button className="store-primary-button" type="submit" disabled={submitting || !items.length}>
-            {submitting ? 'جارٍ تأكيد الطلب…' : 'تأكيد الطلب'}
+            {submitting ? 'Placing order…' : 'Place order'}
           </button>
         </form>
         <aside className="cart-summary">
-          <h2>مراجعة الطلب</h2>
+          <h2>Order summary</h2>
           {items.map((item) => (
             <p className="checkout-line" key={item.product.id}>
               <span>{item.product.name} × {item.quantity}</span>
               <strong>{(Number(item.product.price) * item.quantity).toFixed(2)} ₪</strong>
             </p>
           ))}
-          <p className="checkout-total"><span>المجموع</span><strong>{total.toFixed(2)} ₪</strong></p>
-          <small>سيتم إرسال الطلب إلى المتجر للتجهيز دون تحصيل إلكتروني.</small>
+          <p className="checkout-total"><span>Total</span><strong>{total.toFixed(2)} ₪</strong></p>
+          <small>The store will receive your order for processing. There is no online payment.</small>
         </aside>
       </section>
     </main>

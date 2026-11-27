@@ -24,10 +24,10 @@ export default function ProductDetailsPage() {
         const { data, error } = await getProduct(productId)
         if (error) throw error
         if (!isMounted) return
-        if (!data) setErrorMessage('لم نعثر على هذا المنتج.')
+        if (!data) setErrorMessage('We could not find this product.')
         else setProduct(data)
       } catch {
-        if (isMounted) setErrorMessage('تعذر جلب تفاصيل المنتج. تحقق من الاتصال وحاول مرة أخرى.')
+        if (isMounted) setErrorMessage('We could not load the product details. Check your connection and try again.')
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -39,27 +39,27 @@ export default function ProductDetailsPage() {
 
   function handleAdd() {
     const message = addItem(product)
-    setNotice(message || 'تمت إضافة المنتج إلى سلتك.')
+    setNotice(message || 'The product was added to your cart.')
   }
 
   return (
-    <main className="store-page" dir="rtl">
+    <main className="store-page" dir="ltr">
       <header className="store-header">
-        <Link className="store-brand" to="/store">FUSHA<span>العودة إلى المتجر</span></Link>
-        <nav className="store-nav"><Link to="/cart">السلة ({itemCount})</Link><Link to="/profile">حسابي</Link></nav>
+        <Link className="store-brand" to="/store">FUSHA<span>Back to store</span></Link>
+        <nav className="store-nav"><Link to="/cart">Cart ({itemCount})</Link><Link to="/profile">My account</Link></nav>
       </header>
-      {loading && <p className="store-state">جارٍ تحميل المنتج…</p>}
+      {loading && <p className="store-state">Loading product…</p>}
       {!loading && errorMessage && <p className="store-state store-state-error" role="alert">{errorMessage}</p>}
       {!loading && product && (
         <article className="product-detail">
           {product.image_url ? <img src={product.image_url} alt={product.name} /> : <div className="product-detail-placeholder">FUSHA</div>}
           <div className="product-detail-copy">
-            <span className="store-category">{product.category || 'معدات رحلات'}</span>
+            <span className="store-category">{product.category || 'Trip gear'}</span>
             <h1>{product.name}</h1>
-            <p>{product.description || 'تفاصيل هذا المنتج ستتوفر قريباً.'}</p>
+            <p>{product.description || 'Product details will be available soon.'}</p>
             <strong className="product-detail-price">{Number(product.price).toFixed(2)} ₪</strong>
-            <p className="product-stock">{Number(product.stock) > 0 ? `متوفر: ${product.stock}` : 'غير متوفر حالياً'}</p>
-            <button className="store-primary-button" type="button" onClick={handleAdd} disabled={Number(product.stock) <= 0}>أضف إلى السلة</button>
+            <p className="product-stock">{Number(product.stock) > 0 ? `In stock: ${product.stock}` : 'Out of stock'}</p>
+            <button className="store-primary-button" type="button" onClick={handleAdd} disabled={Number(product.stock) <= 0}>Add to cart</button>
             {notice && <p className="store-notice" role="status">{notice}</p>}
           </div>
         </article>

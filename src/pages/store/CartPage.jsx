@@ -10,17 +10,17 @@ export default function CartPage() {
   const [quantityError, setQuantityError] = useState('')
 
   return (
-    <main className="store-page" dir="rtl">
+    <main className="store-page" dir="ltr">
       <header className="store-header">
-        <Link className="store-brand" to="/store">FUSHA<span>سلة المشتريات</span></Link>
-        <nav className="store-nav"><Link to="/store">متابعة التسوق</Link><Link to="/orders">طلباتي</Link></nav>
+        <Link className="store-brand" to="/store">FUSHA<span>Shopping cart</span></Link>
+        <nav className="store-nav"><Link to="/store">Continue shopping</Link><Link to="/orders">My orders</Link></nav>
       </header>
       <section className="store-content">
-        <h1 className="section-title">سلة المشتريات</h1>
-        {loading && <p className="store-state">جارٍ تحميل السلة…</p>}
+        <h1 className="section-title">Shopping cart</h1>
+        {loading && <p className="store-state">Loading your cart…</p>}
         {notice && <p className="store-notice" role="status">{notice}</p>}
         {quantityError && <p className="store-state-error" role="alert">{quantityError}</p>}
-        {!loading && !items.length && <div className="store-state"><p>سلتك فارغة حالياً.</p><Link className="store-primary-button" to="/store">اكتشف المنتجات</Link></div>}
+        {!loading && !items.length && <div className="store-state"><p>Your cart is empty.</p><Link className="store-primary-button" to="/store">Browse products</Link></div>}
         {items.length > 0 && (
           <div className="cart-layout">
             <div className="cart-items">
@@ -31,7 +31,7 @@ export default function CartPage() {
                     <h2>{item.product.name}</h2>
                     <p>{Number(item.product.price).toFixed(2)} ₪</p>
                     <label className="quantity-control">
-                      <span>الكمية</span>
+                      <span>Quantity</span>
                       <input
                         type="number"
                         min="1"
@@ -44,17 +44,17 @@ export default function CartPage() {
                         }}
                       />
                     </label>
-                    <button className="text-button" type="button" onClick={() => removeItem(item.product.id)}>حذف</button>
+                    <button className="text-button" type="button" onClick={() => removeItem(item.product.id)}>Remove</button>
                   </div>
                   <strong>{(Number(item.product.price) * item.quantity).toFixed(2)} ₪</strong>
                 </article>
               ))}
             </div>
             <aside className="cart-summary">
-              <h2>ملخص السلة</h2>
-              <p><span>المجموع</span><strong>{total.toFixed(2)} ₪</strong></p>
-              <small>الدفع الإلكتروني غير متاح. سيتم تأكيد الطلب دون دفع إلكتروني.</small>
-              {user ? <Link className="store-primary-button" to="/checkout">متابعة لإتمام الطلب</Link> : <Link className="store-primary-button" to="/login">سجّل الدخول لإتمام الطلب</Link>}
+              <h2>Cart summary</h2>
+              <p><span>Total</span><strong>{total.toFixed(2)} ₪</strong></p>
+              <small>Orders can be placed without an online payment.</small>
+              {user ? <Link className="store-primary-button" to="/checkout">Proceed to checkout</Link> : <Link className="store-primary-button" to="/login">Sign in to check out</Link>}
             </aside>
           </div>
         )}

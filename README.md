@@ -1,70 +1,70 @@
 # FUSHA
 
-منصة لاكتشاف الأنشطة الخارجية والتخطيط للرحلات وشراء مستلزماتها. هذا الفرع (`feature/store-auth`) يحتوي عمل يوسف في الحسابات والملف الشخصي والمتجر والسلة والطلبات.
+FUSHA helps people discover outdoor activities, plan trips, and shop for gear. The `feature/store-auth` branch contains Youssef's work on accounts, profiles, the store, the cart, and orders.
 
-## تشغيل المشروع
+## Run the project
 
-1. ثبّت الحزم:
+1. Install the dependencies.
 
    ```bash
    npm install
    ```
 
-2. أنشئ ملف إعداد محلي:
+2. Create a local configuration file.
 
    ```bash
    cp .env.example .env.local
    ```
 
-3. أضف رابط مشروع Supabase ومفتاح النشر العام إلى `.env.local`:
+3. Add the Supabase project URL and publishable key to `.env.local`.
 
    ```env
    VITE_SUPABASE_URL=https://your-project.supabase.co
    VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
    ```
 
-4. شغّل التطبيق:
+4. Start the development server.
 
    ```bash
    npm run dev
    ```
 
-لا تضع `service_role` أو أي مفتاح سري في متغير يبدأ بـ`VITE_` أو ترفعه إلى GitHub.
+Keep the `service_role` key and any other secret out of variables prefixed with `VITE_` and out of GitHub.
 
-## ما يتضمنه الفرع
+## Branch features
 
-- التسجيل والدخول والخروج واستعادة جلسة Supabase Auth بعد تحديث الصفحة.
-- حماية صفحات المتجر والسلة والطلبات والملف الشخصي للمستخدم المسجّل.
-- عرض الملف الشخصي وتعديل الاسم مع قصر القراءة والتعديل على صاحبه.
-- عرض المنتجات وتفاصيلها والبحث والتصفية حسب التصنيف والسعر.
-- سلة محفوظة للمستخدم، مع حفظ محلي احتياطي عند تعذر مزامنة Supabase.
-- إتمام الطلب من دون دفع إلكتروني، مع التحقق من المخزون والسعر وحفظ تفاصيل الطلب وتحديث المخزون داخل `place_order`.
-- صفحة الطلبات السابقة وصفحة إدارة المتجر.
+- Sign up, sign in, sign out, and restore Supabase Auth sessions after a refresh.
+- Require a signed-in account to access the store, cart, orders, and profile pages.
+- View and edit the name on your own profile.
+- Browse product details, search, and filter by category or price.
+- Sync the user's cart and keep a local copy when Supabase sync fails.
+- Place orders without online payment. The `place_order` function checks stock and prices, saves the order details, and updates inventory.
+- View past orders and manage the store.
 
-## قاعدة البيانات والصلاحيات
+## Database and permissions
 
-ملف الترحيل هو [`supabase/migrations/20261120000100_store_cart_orders.sql`](supabase/migrations/20261120000100_store_cart_orders.sql). مخطط المتجر مطبّق على مشروع FUSHA المشترك. يعيد استخدام جدول `profiles` الموجود، وينشئ `products` و`cart_items` و`orders` و`order_items` مع سياسات RLS.
+The store schema is applied to the shared FUSHA project. The [store migration](supabase/migrations/20261120000100_store_cart_orders.sql) reuses `profiles` and creates `products`, `cart_items`, `orders`, and `order_items` with row-level security (RLS).
 
-صفحة الإدارة `/admin/store` تفحص `app_metadata.role = "admin"` أو وجود `admin` في `app_metadata.roles`. دور **Developer** في عضوية مؤسسة Supabase منفصل عن دور مدير المتجر داخل التطبيق؛ المستخدم العادي لا يستطيع منح نفسه دور مدير من المتصفح. يجب على مالك المشروع تهيئة مدير أولي عبر إجراء موثوق من جهة الخادم باستخدام Supabase Auth Admin API، مع إبقاء مفتاح الخدمة خارج الواجهة الأمامية. بعد تحديث الدور، يسجّل المدير الخروج ثم الدخول ليحصل على جلسة محدثة.
+The `/admin/store` page checks for `app_metadata.role = "admin"` or an `admin` entry in `app_metadata.roles`. The Supabase organization **Developer** role grants organization access. Store administration uses the app role, which regular users cannot grant themselves through the browser. To set up the first store admin, the project owner uses the Supabase Auth Admin API from a trusted server-side environment and keeps the service key out of the frontend. After the update, the admin signs out and back in to refresh the session.
 
-المتجر لا يحتوي منتجات افتراضية. بعد تهيئة مدير المتجر، أضف المنتجات وأسعارها وصورها ومخزونها من `/admin/store`.
+The store starts without sample products. After setting up an administrator, use `/admin/store` to add products, prices, images, and stock.
 
-## المسارات
+## Routes
 
-| المسار | الاستخدام |
+| Route | Purpose |
 | --- | --- |
-| `/register` و`/login` | إنشاء حساب والدخول |
-| `/profile` | الملف الشخصي |
-| `/store` و`/store/:productId` | المتجر وتفاصيل المنتج |
-| `/cart` و`/checkout` | السلة وإتمام الطلب |
-| `/orders` | طلبات المستخدم الحالي |
-| `/admin/store` | إدارة المنتجات والطلبات للمسؤول فقط |
+| `/register` and `/login` | Create an account and sign in |
+| `/profile` | Your profile |
+| `/store` and `/store/:productId` | Store catalog and product details |
+| `/cart` and `/checkout` | Cart and checkout |
+| `/orders` | Orders placed by the signed-in user |
+| `/admin/store` | Product and order management for store administrators |
 
-## الفحص المحلي
+## Local checks
 
 ```bash
 npm run lint
 npm run build
 ```
 
-لاختبار مسار الطلب بالكامل، سجّل الدخول، أضف منتجات من حساب مدير المتجر، ثم أضف منتجاً إلى السلة وأكمل الطلب. تأكد من ظهور الطلب وتحديث المخزون.
+To test checkout, sign in and add products from a store administrator account. Add a product to the cart, place an order, and verify that the order appears and stock decreases.

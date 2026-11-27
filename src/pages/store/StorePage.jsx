@@ -30,7 +30,7 @@ export default function StorePage() {
       } catch {
         if (isMounted) {
           setProducts([])
-          setErrorMessage('تعذر جلب المنتجات من Supabase. تحقق من الاتصال وجدول products وصلاحية القراءة.')
+          setErrorMessage('We could not load the products. Try again in a moment.')
         }
       } finally {
         if (isMounted) setLoading(false)
@@ -58,55 +58,55 @@ export default function StorePage() {
 
   function handleAdd(product) {
     const message = addItem(product)
-    setCartMessage(message || `أُضيف ${product.name} إلى السلة.`)
+    setCartMessage(message || `${product.name} was added to your cart.`)
   }
 
   return (
-    <main className="store-page" dir="rtl">
+    <main className="store-page" dir="ltr">
       <header className="store-header">
-        <Link className="store-brand" to="/">FUSHA<span>مغامرتك تبدأ من هنا</span></Link>
-        <nav className="store-nav" aria-label="روابط المتجر">
-          <Link to="/store">المتجر</Link>
-          <Link to="/cart">السلة ({itemCount})</Link>
-          <Link to="/orders">طلباتي</Link>
-          <Link to="/profile">حسابي</Link>
+        <Link className="store-brand" to="/">FUSHA<span>Your adventure starts here</span></Link>
+        <nav className="store-nav" aria-label="Store navigation">
+          <Link to="/store">Store</Link>
+          <Link to="/cart">Cart ({itemCount})</Link>
+          <Link to="/orders">My orders</Link>
+          <Link to="/profile">My account</Link>
         </nav>
       </header>
 
       <section className="store-hero">
-        <p className="store-eyebrow">تجهيزات لكل مغامرة</p>
-        <h1>معدات رحلتك القادمة</h1>
-        <p>اختر ما تحتاجه للاستكشاف والتخييم والأنشطة في الهواء الطلق.</p>
+        <p className="store-eyebrow">Gear for every adventure</p>
+        <h1>Gear for your next trip</h1>
+        <p>Find what you need for exploring, camping, and other outdoor activities.</p>
       </section>
 
-      <section className="store-content" aria-label="المنتجات">
+      <section className="store-content" aria-label="Products">
         <div className="store-toolbar">
           <label>
-            <span>ابحث عن منتج</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="خيمة، حقيبة، مصباح…" />
+            <span>Search products</span>
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tent, backpack, flashlight…" />
           </label>
           <label>
-            <span>التصنيف</span>
+            <span>Category</span>
             <select value={category} onChange={(event) => setCategory(event.target.value)}>
-              <option value="all">كل التصنيفات</option>
+              <option value="all">All categories</option>
               {categories.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
           <label>
-            <span>أقل سعر (₪)</span>
-            <input type="number" min="0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="بدون حد" />
+            <span>Minimum price (₪)</span>
+            <input type="number" min="0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="No limit" />
           </label>
           <label>
-            <span>أعلى سعر (₪)</span>
-            <input type="number" min="0" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="بدون حد" />
+            <span>Maximum price (₪)</span>
+            <input type="number" min="0" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="No limit" />
           </label>
         </div>
 
-        {cartMessage && <p className="store-notice" role="status">{cartMessage} <Link to="/cart">عرض السلة</Link></p>}
-        {loading && <p className="store-state" aria-live="polite">جارٍ تحميل المنتجات…</p>}
+        {cartMessage && <p className="store-notice" role="status">{cartMessage} <Link to="/cart">View cart</Link></p>}
+        {loading && <p className="store-state" aria-live="polite">Loading products…</p>}
         {!loading && errorMessage && <p className="store-state store-state-error" role="alert">{errorMessage}</p>}
         {!loading && !errorMessage && filteredProducts.length === 0 && (
-          <p className="store-state">لا توجد منتجات تطابق بحثك حالياً.</p>
+          <p className="store-state">No products match your search.</p>
         )}
         {!loading && !errorMessage && filteredProducts.length > 0 && (
           <div className="store-grid">
