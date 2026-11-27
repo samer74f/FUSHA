@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { result, supabase } from '../../services/supabase'
-import { categories, guide, templates } from './catalog'
+import { categories, guide, localizeGuideRow, localizeTemplateRow, templates } from './equipmentCatalog'
 import PackingList from './PackingList'
 import UsedGear from './UsedGear'
 
-const sections = { guide: 'دليل المعدات', packing: 'قائمة التجهيز', used: 'المعدات المستعملة' }
+const sections = { guide: 'Equipment Guide', packing: 'Packing List', used: 'Used Equipment' }
 
 function Account({ owner }) {
   const [open, setOpen] = useState(false)
@@ -21,9 +21,9 @@ function Account({ owner }) {
       await result(supabase.auth.signInWithOtp({
         email, options: { emailRedirectTo: window.location.origin + window.location.pathname },
       }))
-      setMessage('أرسلنا رابط تسجيل الدخول إلى بريدك الإلكتروني.')
+      setMessage('We sent a sign-in link to your email.')
     } catch {
-      setMessage('تعذّر إرسال رابط الدخول. حاول مجددًا.')
+      setMessage('Unable to send a sign-in link. Try again.')
     } finally {
       setBusy(false)
     }
@@ -33,19 +33,19 @@ function Account({ owner }) {
     setBusy(true)
     setMessage('')
     try { await result(supabase.auth.signOut()) }
-    catch { setMessage('تعذّر تسجيل الخروج. حاول مجددًا.') }
+    catch { setMessage('Unable to sign out. Try again.') }
     finally { setBusy(false) }
   }
 
   return (
     <div className="account">
       {owner
-        ? <button className="secondary" disabled={busy} onClick={signOut}>تسجيل الخروج</button>
-        : <button className="secondary" aria-expanded={open} onClick={() => setOpen(value => !value)}>تسجيل الدخول</button>}
+        ? <button className="secondary" disabled={busy} onClick={signOut}>Sign out</button>
+        : <button className="secondary" aria-expanded={open} onClick={() => setOpen(value => !value)}>Sign in</button>}
       {!owner && open && (
         <form className="inline-form" onSubmit={signIn}>
-          <input type="email" name="email" dir="ltr" aria-label="البريد الإلكتروني" placeholder="name@example.com" required />
-          <button disabled={busy}>أرسل رابط الدخول</button>
+          <input type="email" name="email" dir="ltr" aria-label="Email address" placeholder="name@example.com" required />
+          <button disabled={busy}>Send sign-in link</button>
         </form>
       )}
       {message && <p role="status">{message}</p>}
@@ -59,13 +59,13 @@ function EquipmentGuide({ items }) {
 
   return (
     <section id="guide" aria-labelledby="guide-title">
-      <h2 id="guide-title">دليل المعدات</h2>
-      <div className="filters" aria-label="فئات المعدات">
-        {Object.entries({ all: 'الكل', ...categories }).map(([key, label]) => (
+      <h2 id="guide-title">Equipment Guide</h2>
+      <div className="filters" aria-label="Equipment categories">
+        {Object.entries({ all: 'All', ...categories }).map(([key, label]) => (
           <button key={key} className="chip" aria-pressed={key === category} onClick={() => setCategory(key)}>{label}</button>
         ))}
       </div>
-      {!visible.length && <p className="empty">لا توجد معدات في هذه الفئة.</p>}
+      {!visible.length && <p className="empty">No equipment in this category.</p>}
       <div className="card-grid">
         {visible.map(item => (
           <article className="card" key={item.id}>
@@ -77,10 +77,10 @@ function EquipmentGuide({ items }) {
               <h3>{item.name}</h3>
               <p>{item.description}</p>
               <details>
-                <summary>الاستخدام ونصائح الاختيار</summary>
-                <h4>طريقة الاستخدام</h4>
+                <summary>Use and selection tips</summary>
+                <h4>How to use it</h4>
                 <p>{item.usage}</p>
-                <h4>نصائح الاختيار</h4>
+                <h4>How to choose</h4>
                 <p>{item.selection_tips}</p>
               </details>
             </div>
@@ -133,9 +133,9 @@ export default function EquipmentPage() {
       if (!active) return
       if (guideRows.length) {
         const categoryOrder = Object.keys(categories)
-        setItems(guideRows.sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category)))
+        setItems(guideRows.map(localizeGuideRow).sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category)))
       }
-      if (templateRows.length) setPackingTemplates(templateRows)
+      if (templateRows.length) setPackingTemplates(templateRows.map(localizeTemplateRow))
       setListings(listingRows)
     }).catch(() => { if (active) setFailed(true) })
       .finally(() => { if (active) setLoading(false) })
@@ -146,21 +146,21 @@ export default function EquipmentPage() {
     <>
       <header className="site-header">
         <div className="wrap header-inner">
-          <a className="brand" href="#guide">فُسحة<span>.</span></a>
+          <a className="brand" href="#guide">FUSHA<span>.</span></a>
           <Account key={owner ?? 'guest'} owner={owner} />
         </div>
       </header>
       <main className="wrap">
         <div className="intro">
-          <h1>المعدات والتجهيز</h1>
-          <p>اختر معدات رحلتك وجهّز قائمتك قبل الانطلاق.</p>
+          <h1>Equipment and Packing</h1>
+          <p>Choose your gear and get your packing list ready before you leave.</p>
         </div>
-        <nav className="section-nav" aria-label="المعدات والتجهيز">
+        <nav className="section-nav" aria-label="Equipment and Packing">
           {Object.entries(sections).map(([key, title]) => (
             <a key={key} href={'#' + key} aria-current={section === key ? 'page' : undefined}>{title}</a>
           ))}
         </nav>
-        {failed && <p className="notice" role="alert">تعذّر تحميل البيانات من Supabase. أعد تحميل الصفحة للمحاولة مجددًا.</p>}
+        {failed && <p className="notice" role="alert">Unable to load data from Supabase. Reload the page to try again.</p>}
         {section === 'guide' && <EquipmentGuide items={items} />}
         {section === 'packing' && <PackingList owner={owner} templates={packingTemplates} />}
         {section === 'used' && <UsedGear key={owner ?? 'guest'} owner={owner} listings={listings} setListings={setListings} loading={loading} failed={failed} />}
