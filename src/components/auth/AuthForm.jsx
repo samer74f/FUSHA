@@ -1,35 +1,37 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { authText } from './accountText.js'
 import { useAuth } from './useAuth.js'
 import './auth.css'
 
-function getFriendlyError(error) {
+function getAuthErrorKey(error) {
   const message = error?.message?.toLowerCase() ?? ''
 
   if (message.includes('invalid login credentials')) {
-    return 'The email address or password is incorrect.'
+    return 'badCredentials'
   }
 
   if (message.includes('user already registered')) {
-    return 'An account already uses this email address. Try signing in.'
+    return 'emailInUse'
   }
 
   if (message.includes('password')) {
-    return 'Make sure your password is at least 6 characters long.'
+    return 'checkPassword'
   }
 
   if (message.includes('email')) {
-    return 'Check that your email address is correct.'
+    return 'checkEmail'
   }
 
-  return 'We could not complete your request. Try again in a moment.'
+  return 'requestFailed'
 }
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
-export default function AuthForm({ mode }) {
+export default function AuthForm({ mode, language = 'en' }) {
+  const text = authText[language]
   const isRegister = mode === 'register'
   const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
@@ -38,32 +40,32 @@ export default function AuthForm({ mode }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
+  const [errorKey, setErrorKey] = useState('')
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(event) {
     event.preventDefault()
-    setErrorMessage('')
-    setSuccessMessage('')
+    setErrorKey('')
+    setNeedsEmailConfirmation(false)
 
     if (!isValidEmail(email.trim())) {
-      setErrorMessage('Enter a valid email address.')
+      setErrorKey('invalidEmail')
       return
     }
 
     if (password.length < 6) {
-      setErrorMessage('Your password must be at least 6 characters long.')
+      setErrorKey('shortPassword')
       return
     }
 
     if (isRegister && fullName.trim().length < 2) {
-      setErrorMessage('Enter your name with at least 2 characters.')
+      setErrorKey('shortName')
       return
     }
 
     if (isRegister && password !== confirmPassword) {
-      setErrorMessage('The passwords do not match.')
+      setErrorKey('passwordMismatch')
       return
     }
 
@@ -79,51 +81,50 @@ export default function AuthForm({ mode }) {
         : await signIn({ email: email.trim(), password })
 
       if (result.error) {
-        setErrorMessage(getFriendlyError(result.error))
+        setErrorKey(getAuthErrorKey(result.error))
       } else if (isRegister && !result.data.session) {
-        setSuccessMessage('Your account is ready. Check your email to confirm your registration, then sign in.')
+        setNeedsEmailConfirmation(true)
       } else {
         const nextPath = location.state?.from?.pathname ?? '/profile'
         navigate(nextPath, { replace: true })
       }
     } catch {
-      setErrorMessage('We could not connect. Check your internet connection and try again.')
+      setErrorKey('connection')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <main className="auth-page" dir="ltr">
+    <main className="auth-page" lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <section className="auth-card" aria-labelledby="auth-title">
-        <Link className="auth-brand" to="/" aria-label="Return to FUSHA">
+        <Link className="auth-brand" to="/" aria-label={text.returnHome}>
           <span className="auth-brand-mark" aria-hidden="true">F</span>
           <span>FUSHA</span>
         </Link>
-        <p className="auth-eyebrow">Your journey starts here</p>
-        <h1 id="auth-title">{isRegister ? 'Create an account' : 'Welcome back'}</h1>
+        <p className="auth-eyebrow">{text.intro}</p>
+        <h1 id="auth-title">{isRegister ? text.registerTitle : text.loginTitle}</h1>
         <p className="auth-description">
-          {isRegister
-            ? 'Create an account to discover trips and prepare for your next adventure.'
-            : 'Sign in to access your trips and account.'}
+          {isRegister ? text.registerDescription : text.loginDescription}
         </p>
 
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           {isRegister && (
             <label className="auth-field">
-              <span>Full name</span>
+              <span>{text.fullName}</span>
               <input
                 autoComplete="name"
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                placeholder="Example: Alex Taylor"
+                placeholder={text.nameExample}
+                dir="auto"
                 required
               />
             </label>
           )}
 
           <label className="auth-field">
-            <span>Email address</span>
+            <span>{text.email}</span>
             <input
               autoComplete="email"
               type="email"
@@ -136,43 +137,43 @@ export default function AuthForm({ mode }) {
           </label>
 
           <label className="auth-field">
-            <span>Password</span>
+            <span>{text.password}</span>
             <input
               autoComplete={isRegister ? 'new-password' : 'current-password'}
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="At least 6 characters"
+              placeholder={text.passwordHint}
               required
             />
           </label>
 
           {isRegister && (
             <label className="auth-field">
-              <span>Confirm password</span>
+              <span>{text.confirmPassword}</span>
               <input
                 autoComplete="new-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Enter your password again"
+                placeholder={text.confirmPasswordHint}
                 required
               />
             </label>
           )}
 
-          {errorMessage && <p className="auth-alert auth-alert-error" role="alert">{errorMessage}</p>}
-          {successMessage && <p className="auth-alert auth-alert-success" role="status">{successMessage}</p>}
+          {errorKey && <p className="auth-alert auth-alert-error" role="alert">{text.errors[errorKey]}</p>}
+          {needsEmailConfirmation && <p className="auth-alert auth-alert-success" role="status">{text.confirmEmail}</p>}
 
           <button className="auth-submit" type="submit" disabled={submitting}>
-            {submitting ? 'Submitting…' : isRegister ? 'Create account' : 'Sign in'}
+            {submitting ? text.submitting : isRegister ? text.createAccount : text.signIn}
           </button>
         </form>
 
         <p className="auth-switch">
-          {isRegister ? 'Already have an account?' : 'Need an account?'}{' '}
+          {isRegister ? text.haveAccount : text.needAccount}{' '}
           <Link to={isRegister ? '/login' : '/register'}>
-            {isRegister ? 'Sign in' : 'Create an account'}
+            {isRegister ? text.signIn : text.registerTitle}
           </Link>
         </p>
       </section>

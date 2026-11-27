@@ -1,33 +1,28 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { authText, profileText } from '../../components/auth/accountText.js'
 import { useAuth } from '../../components/auth/useAuth.js'
 import { supabase } from '../../components/auth/supabaseClient.js'
 import '../../components/auth/auth.css'
 import './profile.css'
 
-function getProfileError(error) {
-  if (error?.code === '42501') {
-    return 'You do not have permission to view this profile.'
-  }
-
-  return 'We could not load your profile. Check your connection and try again.'
-}
-
-export default function ProfilePage() {
+export default function ProfilePage({ language = 'en' }) {
+  const text = profileText[language]
+  const direction = language === 'ar' ? 'rtl' : 'ltr'
   const { user, signOut } = useAuth()
   const [profile, setProfile] = useState(null)
   const [fullName, setFullName] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
+  const [errorKey, setErrorKey] = useState('')
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     let isMounted = true
 
     async function loadProfile() {
       setLoading(true)
-      setErrorMessage('')
+      setErrorKey('')
 
       try {
         const { data, error } = await supabase
@@ -39,7 +34,7 @@ export default function ProfilePage() {
         if (!isMounted) return
 
         if (error) {
-          setErrorMessage(getProfileError(error))
+          setErrorKey(error.code === '42501' ? 'permission' : 'loadFailed')
         } else if (!data) {
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
@@ -54,7 +49,7 @@ export default function ProfilePage() {
           if (!isMounted) return
 
           if (createError) {
-            setErrorMessage('We could not load your profile. Try again in a moment.')
+            setErrorKey('createFailed')
           } else {
             setProfile(newProfile)
             setFullName(newProfile.full_name ?? '')
@@ -64,7 +59,7 @@ export default function ProfilePage() {
           setFullName(data.full_name ?? user.user_metadata?.full_name ?? '')
         }
       } catch {
-        if (isMounted) setErrorMessage('We could not connect to load your profile. Try again.')
+        if (isMounted) setErrorKey('loadConnection')
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -81,18 +76,18 @@ export default function ProfilePage() {
 
   async function handleSave(event) {
     event.preventDefault()
-    setErrorMessage('')
-    setSuccessMessage('')
+    setErrorKey('')
+    setSaved(false)
 
     const cleanName = fullName.trim()
 
     if (cleanName.length < 2) {
-      setErrorMessage('Enter a name with at least 2 characters.')
+      setErrorKey('shortName')
       return
     }
 
     if (!profile) {
-      setErrorMessage('Ask the project administrator to create your profile in the profiles table before editing it.')
+      setErrorKey('missingProfile')
       return
     }
 
@@ -107,16 +102,16 @@ export default function ProfilePage() {
         .maybeSingle()
 
       if (error) {
-        setErrorMessage('We could not save your profile. Try again in a moment.')
+        setErrorKey('saveFailed')
       } else if (!data) {
-        setErrorMessage('Your changes were not saved. Reload the page and try again.')
+        setErrorKey('noChanges')
       } else {
         setProfile(data)
         setFullName(data.full_name ?? '')
-        setSuccessMessage('Your profile name was saved.')
+        setSaved(true)
       }
     } catch {
-      setErrorMessage('We could not connect to save your changes. Try again.')
+      setErrorKey('saveConnection')
     } finally {
       setSaving(false)
     }
@@ -126,78 +121,79 @@ export default function ProfilePage() {
     try {
       const { error } = await signOut()
 
-      if (error) setErrorMessage('We could not sign you out. Try again.')
+      if (error) setErrorKey('signOutFailed')
     } catch {
-      setErrorMessage('We could not connect to sign you out. Try again.')
+      setErrorKey('signOutConnection')
     }
   }
 
   if (loading) {
     return (
-      <main className="auth-page" dir="ltr" aria-live="polite">
-        <p className="auth-message">Loading your profile…</p>
+      <main className="auth-page" lang={language} dir={direction} aria-live="polite">
+        <p className="auth-message">{text.loading}</p>
       </main>
     )
   }
 
   return (
-    <main className="auth-page" dir="ltr">
+    <main className="auth-page" lang={language} dir={direction}>
       <section className="auth-card profile-card" aria-labelledby="profile-title">
         <Link className="auth-brand" to="/">
           <span className="auth-brand-mark" aria-hidden="true">F</span>
           <span>FUSHA</span>
         </Link>
-        <Link className="profile-store-link" to="/store">Visit the store</Link>
+        <Link className="profile-store-link" to="/store">{text.store}</Link>
 
         <div className="profile-heading">
           {profile?.avatar_url ? (
-            <img className="profile-avatar" src={profile.avatar_url} alt="Profile photo" />
+            <img className="profile-avatar" src={profile.avatar_url} alt={text.photo} />
           ) : (
             <div className="profile-avatar profile-avatar-placeholder" aria-hidden="true">
               {(fullName || user.email || 'F').slice(0, 1).toUpperCase()}
             </div>
           )}
           <div>
-            <p className="auth-eyebrow">My profile</p>
-            <h1 id="profile-title">Welcome</h1>
+            <p className="auth-eyebrow">{text.title}</p>
+            <h1 id="profile-title">{text.welcome}</h1>
           </div>
         </div>
 
         <dl className="profile-details">
           <div>
-            <dt>Email address</dt>
+            <dt>{authText[language].email}</dt>
             <dd dir="ltr">{user.email}</dd>
           </div>
           {profile?.created_at && (
             <div>
-              <dt>Profile created</dt>
-              <dd>{new Date(profile.created_at).toLocaleDateString('en-GB')}</dd>
+              <dt>{text.created}</dt>
+              <dd>{new Date(profile.created_at).toLocaleDateString(language === 'ar' ? 'ar' : 'en-GB')}</dd>
             </div>
           )}
         </dl>
 
         <form className="auth-form" onSubmit={handleSave}>
           <label className="auth-field">
-            <span>Full name</span>
+            <span>{authText[language].fullName}</span>
             <input
               autoComplete="name"
               value={fullName}
               onChange={(event) => setFullName(event.target.value)}
-              placeholder="Enter your name"
+              placeholder={text.nameHint}
+              dir="auto"
               required
             />
           </label>
 
-          {errorMessage && <p className="auth-alert auth-alert-error" role="alert">{errorMessage}</p>}
-          {successMessage && <p className="auth-alert auth-alert-success" role="status">{successMessage}</p>}
+          {errorKey && <p className="auth-alert auth-alert-error" role="alert">{text.errors[errorKey]}</p>}
+          {saved && <p className="auth-alert auth-alert-success" role="status">{text.saved}</p>}
 
           <button className="auth-submit" type="submit" disabled={saving || !profile}>
-            {saving ? 'Saving…' : 'Save changes'}
+            {saving ? text.saving : text.save}
           </button>
         </form>
 
         <button className="profile-logout" type="button" onClick={handleSignOut}>
-          Sign out
+          {text.signOut}
         </button>
       </section>
     </main>

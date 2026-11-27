@@ -4,6 +4,7 @@ import TripCard from "../../components/trips/TripCard";
 import TripFilters from "../../components/trips/TripFilters";
 import { TripLoadError } from "../../components/trips/TripMessages";
 import { tripText } from "../../components/trips/tripText";
+import { applyLanguage, getSavedLanguage } from "../../services/languagePreferences";
 import { getTrips } from "../../services/tripService";
 import { tripSupabase } from "../../services/tripSupabaseClient";
 import CreateTrip from "./CreateTrip";
@@ -64,7 +65,7 @@ function TripList({ text, language, user }) {
   );
 }
 
-function TripsSection({ loginPath }) {
+function TripsSection({ language, loginPath, onLanguageChange }) {
   const location = useLocation();
   const [user, setUser] = useState(tripSupabase ? undefined : null);
 
@@ -76,13 +77,19 @@ function TripsSection({ loginPath }) {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  const pageProps = { text: tripText, language: "en", user, loginPath };
+  const text = tripText[language];
+  const nextLanguage = language === "ar" ? "en" : "ar";
+  const pageProps = { text, language, user, loginPath };
 
   return (
-    <section className="trips-page" lang="en" dir="ltr">
+    <section className="trips-page" lang={language} dir={language === "ar" ? "rtl" : "ltr"}>
       <div className="trips-content">
         <div className="trip-toolbar">
-          <Link className="trip-brand" to="/trips">FUSHA</Link>
+          <Link className="trip-brand" to="/trips">{language === "ar" ? "فُسحة" : "FUSHA"}</Link>
+          {onLanguageChange && (
+            <button className="trip-button trip-secondary" type="button" lang={nextLanguage}
+              onClick={() => onLanguageChange(nextLanguage)}>{text.switchLanguage}</button>
+          )}
         </div>
         <Routes key={location.pathname}>
           <Route index element={<TripList {...pageProps} />} />
@@ -96,9 +103,21 @@ function TripsSection({ loginPath }) {
   );
 }
 
-function Trips({ loginPath }) {
+function Trips({ loginPath, language: siteLanguage }) {
   const hasRouter = useInRouterContext();
-  const section = <TripsSection loginPath={loginPath} />;
+  const [language, setLanguage] = useState(getSavedLanguage);
+
+  useEffect(() => {
+    if (!siteLanguage) applyLanguage(language);
+  }, [language, siteLanguage]);
+
+  const section = (
+    <TripsSection
+      loginPath={loginPath}
+      language={siteLanguage ?? language}
+      onLanguageChange={siteLanguage ? undefined : setLanguage}
+    />
+  );
 
   if (hasRouter) return section;
 

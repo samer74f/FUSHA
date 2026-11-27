@@ -42,6 +42,23 @@
   font-size: 1.25rem;
 }
 
+.site-language-button {
+  margin-inline-start: auto;
+  min-block-size: 44px;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #244b38;
+  border-radius: 0.5rem;
+  background: #f7f5ed;
+  color: #244b38;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.site-language-button:hover {
+  background: #e7eee8;
+}
+
 .site-content {
   width: min(70rem, calc(100% - 2rem));
   margin: clamp(1.25rem, 4vw, 3rem) auto;
