@@ -3,6 +3,8 @@ import { result, supabase } from '../../services/supabase'
 import { getEquipmentCategories } from './equipmentCatalog'
 import { Select } from './PackingList'
 
+const contactEmailPattern = /^[^@\s]+@[^@\s]+$/u
+
 function ListingForm({ listing, owner, onSave, onClose, categories, text }) {
   const [kind, setKind] = useState(listing?.kind ?? 'sale')
   const [busy, setBusy] = useState(false)
@@ -17,6 +19,11 @@ function ListingForm({ listing, owner, onSave, onClose, categories, text }) {
       setError('imageError')
       return
     }
+    const contactEmail = get('contact_email')
+    if ((!listing || contactEmail) && !contactEmailPattern.test(contactEmail)) {
+      setError('contactError')
+      return
+    }
     const row = {
       owner_id: owner, kind, name: get('name'), category: get('category'),
       description: get('description'), condition: get('condition'), image_url: image.href,
@@ -24,6 +31,9 @@ function ListingForm({ listing, owner, onSave, onClose, categories, text }) {
       currency: kind === 'sale' ? get('currency').toUpperCase() : null,
       loan_terms: kind === 'loan' ? get('loan_terms') : null,
     }
+    if (contactEmail) row.contact_email = contactEmail
+    else if (listing?.contact_email) row.contact_email = null
+
     if (!row.name || !row.description || (kind === 'loan' && !row.loan_terms)) {
       setError('required')
       return
@@ -56,6 +66,11 @@ function ListingForm({ listing, owner, onSave, onClose, categories, text }) {
           <input dir="ltr" name="image_url" type="url" pattern="https?://.+" required defaultValue={listing?.image_url} />
         </label>
         <label className="full">{text.description}<textarea name="description" dir="auto" required maxLength={2000} defaultValue={listing?.description} /></label>
+        <label className="full">{text.contactEmail}
+          <input name="contact_email" type="email" dir="ltr" maxLength={254}
+            required={!listing} defaultValue={listing?.contact_email ?? ''} />
+          <small className="muted">{text.contactHint}</small>
+        </label>
         {kind === 'sale' ? <>
           <label>{text.price}<input name="price" type="number" min="0.01" max="99999999.99" step="0.01" required defaultValue={listing?.price} /></label>
           <label>{text.currency}
@@ -135,6 +150,14 @@ export default function UsedGear({ owner, listings, setListings, loading, failed
               <p className="listing-value">{row.kind === 'sale'
                 ? new Intl.NumberFormat(language, { style: 'currency', currency: row.currency }).format(row.price)
                 : <>{text.loanTerms} · <bdi>{row.loan_terms}</bdi></>}</p>
+              {row.contact_email && contactEmailPattern.test(row.contact_email) ? (
+                <p className="equipment-listing-contact">
+                  <a href={`mailto:${encodeURIComponent(row.contact_email).replace('%40', '@')}`}>
+                    {text.contactSeller}
+                  </a>
+                  {' · '}<bdi>{row.contact_email}</bdi>
+                </p>
+              ) : <p>{text.noContact}</p>}
               {row.owner_id === owner && (
                 deleting === row.id ? (
                   <div className="actions">

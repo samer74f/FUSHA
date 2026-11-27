@@ -52,22 +52,35 @@ function Account({ owner, text }) {
   )
 }
 
+function normalizeEquipmentName(name, language) {
+  return name.normalize('NFD').replace(/[\p{M}ـ]/gu, '').toLocaleLowerCase(language).trim()
+}
+
 function EquipmentGuide({ items, language, title, text }) {
   const categoryLabels = getEquipmentCategories(language)
   const [category, setCategory] = useState('all')
-  const visible = items.filter(item => category === 'all' || item.category === category)
+  const [query, setQuery] = useState('')
+  const needle = normalizeEquipmentName(query, language)
+  const visible = items
+    .filter(item => category === 'all' || item.category === category)
+    .map(item => localizeGuideRow(item, language))
+    .filter(item => normalizeEquipmentName(item.name, language).includes(needle))
 
   return (
     <section id="guide" aria-labelledby="guide-title">
       <h2 id="guide-title">{title}</h2>
+      <label className="equipment-guide-search">
+        {text.search}
+        <input type="search" dir="auto" value={query} onChange={event => setQuery(event.target.value)} />
+      </label>
       <div className="filters" aria-label={text.categories}>
         {Object.entries({ all: text.all, ...categoryLabels }).map(([key, label]) => (
           <button key={key} className="chip" aria-pressed={key === category} onClick={() => setCategory(key)}>{label}</button>
         ))}
       </div>
-      {!visible.length && <p className="empty">{text.empty}</p>}
+      {!visible.length && <p className="empty" role="status">{needle ? text.noMatches : text.empty}</p>}
       <div className="card-grid">
-        {visible.map(row => localizeGuideRow(row, language)).map(item => (
+        {visible.map(item => (
           <article className="card" key={item.id}>
             {item.image_url
               ? <img className="listing-img" src={item.image_url} alt={item.name} loading="lazy" />
