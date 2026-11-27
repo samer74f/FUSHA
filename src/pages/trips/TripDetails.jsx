@@ -53,7 +53,6 @@ function TripDetails({ user, text, language, loginPath }) {
   const isLoadingOrSaving = isSaving || currentTripResult?.reloadCount !== reloadCount;
 
   function reloadDetails() {
-    // The new count reloads the details and the participants panel together.
     setReloadCount((previous) => previous + 1);
   }
 
