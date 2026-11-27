@@ -1,7 +1,12 @@
+
+import Trips from "./pages/trips/Trips";
+
 function App() {
   return (
-    <h1>FUSHA</h1>
-  )
+    <main>
+      <Trips />
+    </main>
+  );
 }
 
-export default App
+export default App;
