@@ -32,34 +32,85 @@ export const templates = [
   { id: 'coast', terrain: 'coast', items: ['Sunscreen', 'Waterproof pouch'] },
 ]
 
-const arabicText = /\p{Script=Arabic}/u
+const arabicCategories = {
+  packs: 'الحقائب', boots: 'الأحذية', tents: 'الخيام', sleeping: 'أكياس النوم',
+  cooking: 'أدوات الطبخ', lighting: 'الإضاءة', clothes: 'الملابس', safety: 'أدوات السلامة',
+}
 
-export function localizeGuideRow(row) {
-  const builtIn = guide.find((item) => item.id === row.id && item.category === row.category)
-  if (!builtIn) return row
+const arabicTripTypes = { hiking: 'مشي', camping: 'تخييم', picnic: 'نزهة' }
+const arabicTerrains = { mountain: 'جبليّة', desert: 'صحراويّة', forest: 'حرجيّة', coast: 'ساحليّة' }
+
+const arabicGuide = [
+  ['packs', 'حقيبة ظهر للمشي', 'حقيبة بحزام خصر لتوزيع الوزن وجيوب يسهل الوصول إليها.', 'ضع الأغراض الثقيلة قرب ظهرك واضبط حزام الخصر قبل شد أحزمة الكتفين.', 'جرّب الحقيبة بوزن قريب من حمولة رحلتك واختر سعة تناسب المدة.'],
+  ['boots', 'حذاء للمسارات', 'حذاء بنعل متماسك يحمي القدم على الأسطح الوعرة.', 'جرّبه في مشاوير قصيرة قبل الرحلة واربطه بحيث يثبت الكعب.', 'جرّبه بجوارب الرحلة واترك مساحة لحركة الأصابع عند النزول.'],
+  ['tents', 'خيمة تخييم', 'مأوى خفيف للمبيت في الهواء الطلق.', 'اختر سطحًا مستويًا وموقعًا مسموحًا، ثم ثبّت الأوتاد وافتح منافذ التهوية.', 'وازن بين السعة والوزن ومقاومة المطر والرياح المتوقعة.'],
+  ['sleeping', 'كيس نوم', 'طبقة عازلة تساعد على الاحتفاظ بحرارة الجسم أثناء النوم.', 'افرده قبل النوم واستخدم تحته فرشة عازلة. خزّنه جافًا ومفكوك الضغط.', 'اختر درجة الراحة بناءً على أقل حرارة ليلية متوقعة.'],
+  ['cooking', 'عدة طبخ للتخييم', 'قدر خفيف وموقد محمول لإعداد وجبات بسيطة.', 'شغّل الموقد خارج الخيمة على سطح ثابت واتبع تعليمات الصانع.', 'تحقق من توفر الوقود المناسب واختر سعة القدر حسب حجم المجموعة.'],
+  ['lighting', 'مصباح تخييم', 'إضاءة محمولة للتنقل والعمل بعد حلول الظلام.', 'اشحنه قبل الرحلة واستخدم مستوى الإضاءة المناسب لتوفير الطاقة.', 'قارن مدة التشغيل ومقاومة الماء، واختر مصباح رأس عند الحاجة إلى يدين حرتين.'],
+  ['clothes', 'سترة للمسارات', 'طبقة خارجية تحمي من الرياح وتساعد على التكيف مع الطقس.', 'ارتدها فوق طبقة أساسية وأضف طبقة دافئة عند انخفاض الحرارة.', 'اختر تهوية جيدة ومساحة كافية للطبقات وفق طقس الرحلة.'],
+  ['safety', 'حقيبة إسعافات أولية', 'مستلزمات أساسية للعناية بالإصابات البسيطة أثناء الرحلة.', 'احفظها في جيب يسهل الوصول إليه وراجع المحتويات وتواريخ الصلاحية.', 'اختر محتويات تناسب عدد الأشخاص وطول الرحلة ومدى بُعدها عن الخدمات.'],
+].map(([category, name, description, usage, selection_tips]) => ({
+  id: category, category, name, description, usage, selection_tips, kind: 'guide',
+}))
+
+const arabicTemplateItems = {
+  essentials: ['ماء للشرب', 'وجبات خفيفة', 'حقيبة إسعافات أولية', 'هاتف مشحون'],
+  hiking: ['حذاء للمسارات', 'خريطة تعمل دون اتصال', 'حقيبة ظهر'],
+  camping: ['خيمة', 'كيس نوم', 'فرشة عازلة', 'مصباح', 'عدة طبخ'],
+  picnic: ['بساط جلوس', 'علبة طعام', 'كيس للنفايات'],
+  overnight: ['ملابس إضافية', 'بطارية متنقلة', 'فرشة عازلة', 'مصباح'],
+  extended: ['وجبات إضافية', 'مستلزمات النظافة', 'مصدر احتياطي للطاقة'],
+  mountain: ['سترة واقية من الرياح', 'عصي مشي'],
+  desert: ['ماء إضافي', 'قبعة شمس', 'واقي الشمس'],
+  forest: ['طارد حشرات', 'سترة مطر'],
+  coast: ['واقي الشمس', 'حافظة مقاومة للماء'],
+}
+
+export function getEquipmentCategories(language) {
+  return language === 'ar' ? arabicCategories : categories
+}
+
+export function getPackingOptions(language) {
+  if (language === 'ar') return { tripTypes: arabicTripTypes, terrains: arabicTerrains }
+  return { tripTypes, terrains }
+}
+
+function guideLabel(value, english, arabic, language) {
+  if (value !== english && value !== arabic) return value
+  return language === 'ar' ? arabic : english
+}
+
+export function localizeGuideRow(row, language) {
+  const english = guide.find(item => item.id === row.id && item.category === row.category)
+  const arabic = arabicGuide.find(item => item.id === row.id && item.category === row.category)
+  if (!english || !arabic) return row
 
   return {
     ...row,
-    name: arabicText.test(row.name) ? builtIn.name : row.name,
-    description: arabicText.test(row.description) ? builtIn.description : row.description,
-    usage: arabicText.test(row.usage) ? builtIn.usage : row.usage,
-    selection_tips: arabicText.test(row.selection_tips) ? builtIn.selection_tips : row.selection_tips,
+    name: guideLabel(row.name, english.name, arabic.name, language),
+    description: guideLabel(row.description, english.description, arabic.description, language),
+    usage: guideLabel(row.usage, english.usage, arabic.usage, language),
+    selection_tips: guideLabel(row.selection_tips, english.selection_tips, arabic.selection_tips, language),
   }
 }
 
-export function localizeTemplateRow(row) {
-  const builtIn = templates.find((template) =>
+export function localizeTemplateRow(row, language) {
+  const builtIn = templates.find(template =>
     template.id === row.id
     && (template.trip_type ?? null) === (row.trip_type ?? null)
     && (template.terrain ?? null) === (row.terrain ?? null)
     && (template.min_days ?? 1) === (row.min_days ?? 1)
-    && template.items.length === row.items.length
   )
   if (!builtIn) return row
 
-  // A built-in item can have an English label while keeping its original saved key.
-  return {
-    ...row,
-    itemLabels: row.items.map((name, index) => arabicText.test(name) ? builtIn.items[index] : name),
-  }
+  const arabicItems = arabicTemplateItems[row.id]
+
+  // Keep the names used in saved checklists while translating the displayed labels.
+  const itemLabels = row.items.map(name => {
+    const englishIndex = builtIn.items.indexOf(name)
+    const index = englishIndex === -1 ? arabicItems.indexOf(name) : englishIndex
+    if (index === -1) return name
+    return language === 'ar' ? arabicItems[index] : builtIn.items[index]
+  })
+  return { ...row, itemLabels }
 }
