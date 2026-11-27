@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { result, supabase } from '../../services/supabase'
-import { terrains, tripTypes } from './equipmentCatalog'
+import { getPackingOptions } from './equipmentCatalog'
 
 export function Select({ label, options, ...props }) {
   return (
@@ -12,7 +12,7 @@ export function Select({ label, options, ...props }) {
   )
 }
 
-function PackingItems({ owner, trip, templates }) {
+function PackingItems({ owner, trip, templates, text }) {
   const localKey = 'fusha:packing:' + Object.values(trip).join(':')
   const [changes, setChanges] = useState(() => {
     if (owner) return []
@@ -33,7 +33,7 @@ function PackingItems({ owner, trip, templates }) {
       .then(rows => { if (active) setChanges(rows) })
       .catch(() => {
         if (active) {
-          setError('Unable to load your list. Reopen this section to try again.')
+          setError('loadError')
           setLoadFailed(true)
         }
       })
@@ -70,7 +70,7 @@ function PackingItems({ owner, trip, templates }) {
       setChanges(next)
       return true
     } catch {
-      setError('Unable to save the change. Try again.')
+      setError('saveError')
       return false
     } finally {
       setBusy(false)
@@ -82,49 +82,50 @@ function PackingItems({ owner, trip, templates }) {
     const trimmed = name.trim()
     if (!trimmed) return
     if (items.has(trimmed) || [...items.values()].some(item => item.label === trimmed)) {
-      setError('This item is already on the list.')
+      setError('duplicate')
       return
     }
     if (await save({ name: trimmed, packed: false, removed: false })) setName('')
   }
 
   return <>
-    {error && <p role="alert" className="notice">{error}</p>}
-    {loading && <p role="status">Loading your list…</p>}
+    {error && <p role="alert" className="notice">{text[error]}</p>}
+    {loading && <p role="status">{text.loading}</p>}
     {!loading && !loadFailed && (
       <div className="packing-panel">
         <div className="section-line">
-          <h3>Your trip checklist</h3>
-          <span>{packedCount} of {items.size} packed</span>
+          <h3>{text.checklist}</h3>
+          <span>{text.count(packedCount, items.size)}</span>
         </div>
-        <progress value={packedCount} max={items.size || 1} aria-label="Packing progress" />
+        <progress value={packedCount} max={items.size || 1} aria-label={text.progress} />
         <ul className="checklist">
           {[...items.values()].map(item => (
             <li key={item.name}>
               <label className={item.packed ? 'checked' : ''}>
                 <input type="checkbox" checked={item.packed} disabled={busy}
                   onChange={() => save({ name: item.name, packed: !item.packed, removed: false })} />
-                {item.label}
+                <bdi>{item.label}</bdi>
               </label>
               <button className="quiet" type="button" disabled={busy}
-                aria-label={'Remove ' + item.label} onClick={() => save({ name: item.name, packed: false, removed: true })}>
-                Remove
+                aria-label={text.remove + ' ' + item.label} onClick={() => save({ name: item.name, packed: false, removed: true })}>
+                {text.remove}
               </button>
             </li>
           ))}
         </ul>
-        {!items.size && <p>Your list is empty.</p>}
+        {!items.size && <p>{text.empty}</p>}
         <form className="inline-form" onSubmit={add}>
-          <input value={name} onChange={event => setName(event.target.value)}
-            required maxLength={120} aria-label="New item name" placeholder="Add an item to the list" />
-          <button disabled={busy}>Add</button>
+          <input dir="auto" value={name} onChange={event => setName(event.target.value)}
+            required maxLength={120} aria-label={text.newItem} placeholder={text.placeholder} />
+          <button disabled={busy}>{text.add}</button>
         </form>
       </div>
     )}
   </>
 }
 
-export default function PackingList({ owner, templates }) {
+export default function PackingList({ owner, templates, language, text }) {
+  const { tripTypes, terrains } = getPackingOptions(language)
   const [trip, setTrip] = useState({ trip_type: 'hiking', terrain: 'mountain', days: 1 })
 
   function generate(event) {
@@ -136,17 +137,17 @@ export default function PackingList({ owner, templates }) {
 
   return (
     <section id="packing" aria-labelledby="packing-title">
-      <h2 id="packing-title">Smart Packing List</h2>
-      <p className="muted">{owner ? 'Your checklist is saved to your account.' : 'Your guest checklist is saved in this browser.'}</p>
+      <h2 id="packing-title">{text.title}</h2>
+      <p className="muted">{owner ? text.accountNote : text.guestNote}</p>
       <form className="trip-form" onSubmit={generate}>
-        <Select label="Trip type" name="trip_type" options={tripTypes} defaultValue={trip.trip_type} />
-        <label>Trip length in days
+        <Select label={text.tripType} name="trip_type" options={tripTypes} defaultValue={trip.trip_type} />
+        <label>{text.tripLength}
           <input type="number" name="days" min="1" max="365" defaultValue={trip.days} required />
         </label>
-        <Select label="Terrain" name="terrain" options={terrains} defaultValue={trip.terrain} />
-        <button>Show checklist</button>
+        <Select label={text.terrain} name="terrain" options={terrains} defaultValue={trip.terrain} />
+        <button>{text.show}</button>
       </form>
-      <PackingItems key={[owner, ...Object.values(trip)].join(':')} owner={owner} trip={trip} templates={templates} />
+      <PackingItems key={[owner, ...Object.values(trip)].join(':')} owner={owner} trip={trip} templates={templates} text={text} />
     </section>
   )
 }

@@ -1,12 +1,9 @@
 import { useState } from 'react'
 import { result, supabase } from '../../services/supabase'
-import { categories } from './equipmentCatalog'
+import { getEquipmentCategories } from './equipmentCatalog'
 import { Select } from './PackingList'
 
-const kinds = { sale: 'For sale', loan: 'For loan' }
-const conditions = { excellent: 'Excellent', good: 'Good', fair: 'Fair' }
-
-function ListingForm({ listing, owner, onSave, onClose }) {
+function ListingForm({ listing, owner, onSave, onClose, categories, text }) {
   const [kind, setKind] = useState(listing?.kind ?? 'sale')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -17,7 +14,7 @@ function ListingForm({ listing, owner, onSave, onClose }) {
     const get = name => String(fields.get(name) ?? '').trim()
     const image = new URL(get('image_url'))
     if (!['http:', 'https:'].includes(image.protocol)) {
-      setError('Enter an image URL that starts with https:// or http://.')
+      setError('imageError')
       return
     }
     const row = {
@@ -28,7 +25,7 @@ function ListingForm({ listing, owner, onSave, onClose }) {
       loan_terms: kind === 'loan' ? get('loan_terms') : null,
     }
     if (!row.name || !row.description || (kind === 'loan' && !row.loan_terms)) {
-      setError('Complete the required fields.')
+      setError('required')
       return
     }
 
@@ -41,7 +38,7 @@ function ListingForm({ listing, owner, onSave, onClose }) {
         : table.insert(row)
       onSave(await result(query.select().single()))
     } catch {
-      setError('Unable to save the listing. Check the fields and try again.')
+      setError('saveError')
     } finally {
       setBusy(false)
     }
@@ -49,35 +46,36 @@ function ListingForm({ listing, owner, onSave, onClose }) {
 
   return (
     <form className="listing-form" onSubmit={save}>
-      <h3>{listing ? 'Edit listing' : 'Add listing'}</h3>
+      <h3>{listing ? text.editListing : text.add}</h3>
       <fieldset disabled={busy}>
-        <label>Equipment name<input name="name" required maxLength={100} defaultValue={listing?.name} /></label>
-        <Select label="Category" name="category" options={categories} defaultValue={listing?.category} />
-        <Select label="Listing type" name="kind" options={kinds} value={kind} onChange={event => setKind(event.target.value)} />
-        <Select label="Condition" name="condition" options={conditions} defaultValue={listing?.condition} />
-        <label className="full">Image URL
+        <label>{text.name}<input name="name" dir="auto" required maxLength={100} defaultValue={listing?.name} /></label>
+        <Select label={text.category} name="category" options={categories} defaultValue={listing?.category} />
+        <Select label={text.kind} name="kind" options={text.kinds} value={kind} onChange={event => setKind(event.target.value)} />
+        <Select label={text.condition} name="condition" options={text.conditions} defaultValue={listing?.condition} />
+        <label className="full">{text.image}
           <input dir="ltr" name="image_url" type="url" pattern="https?://.+" required defaultValue={listing?.image_url} />
         </label>
-        <label className="full">Description<textarea name="description" required maxLength={2000} defaultValue={listing?.description} /></label>
+        <label className="full">{text.description}<textarea name="description" dir="auto" required maxLength={2000} defaultValue={listing?.description} /></label>
         {kind === 'sale' ? <>
-          <label>Price<input name="price" type="number" min="0.01" max="99999999.99" step="0.01" required defaultValue={listing?.price} /></label>
-          <label>Currency code
+          <label>{text.price}<input name="price" type="number" min="0.01" max="99999999.99" step="0.01" required defaultValue={listing?.price} /></label>
+          <label>{text.currency}
             <input name="currency" dir="ltr" required pattern="[A-Za-z]{3}" maxLength={3} placeholder="ILS" defaultValue={listing?.currency} />
           </label>
         </> : (
-          <label className="full">Loan terms<textarea name="loan_terms" required maxLength={1000} defaultValue={listing?.loan_terms} /></label>
+          <label className="full">{text.loanTerms}<textarea name="loan_terms" dir="auto" required maxLength={1000} defaultValue={listing?.loan_terms} /></label>
         )}
       </fieldset>
-      {error && <p role="alert" className="notice">{error}</p>}
+      {error && <p role="alert" className="notice">{text[error]}</p>}
       <div className="actions">
-        <button disabled={busy}>{busy ? 'Saving…' : 'Save listing'}</button>
-        <button disabled={busy} type="button" className="secondary" onClick={onClose}>Cancel</button>
+        <button disabled={busy}>{busy ? text.saving : text.save}</button>
+        <button disabled={busy} type="button" className="secondary" onClick={onClose}>{text.cancel}</button>
       </div>
     </form>
   )
 }
 
-export default function UsedGear({ owner, listings, setListings, loading, failed }) {
+export default function UsedGear({ owner, listings, setListings, loading, failed, language, title, text }) {
+  const categories = getEquipmentCategories(language)
   const [filter, setFilter] = useState('all')
   const [editor, setEditor] = useState(null)
   const [deleting, setDeleting] = useState(null)
@@ -92,7 +90,7 @@ export default function UsedGear({ owner, listings, setListings, loading, failed
       setListings(current => current.filter(row => row.id !== id))
       setDeleting(null)
     } catch {
-      setError('Unable to delete the listing. Try again.')
+      setError('deleteError')
     } finally {
       setBusy(false)
     }
@@ -108,45 +106,45 @@ export default function UsedGear({ owner, listings, setListings, loading, failed
   return (
     <section id="used" aria-labelledby="used-title">
       <div className="section-line">
-        <h2 id="used-title">Used Equipment</h2>
-        {owner && !editor && !loading && <button onClick={() => setEditor({})}>Add listing</button>}
+        <h2 id="used-title">{title}</h2>
+        {owner && !editor && !loading && <button onClick={() => setEditor({})}>{text.add}</button>}
       </div>
-      {supabase && !owner && <p className="muted">Sign in to list equipment for sale or loan.</p>}
-      {!supabase && <p className="notice">Listings are available when the project is connected to Supabase.</p>}
+      {supabase && !owner && <p className="muted">{text.signIn}</p>}
+      {!supabase && <p className="notice">{text.missingConnection}</p>}
       {editor && owner && (
         <ListingForm key={editor.id ?? 'new'} listing={editor.id ? editor : null}
-          owner={owner} onSave={saved} onClose={() => setEditor(null)} />
+          owner={owner} onSave={saved} onClose={() => setEditor(null)} categories={categories} text={text} />
       )}
-      <div className="filters" aria-label="Filter listings">
-        {Object.entries({ all: 'All', ...kinds }).map(([key, label]) => (
+      <div className="filters" aria-label={text.filter}>
+        {Object.entries({ all: text.all, ...text.kinds }).map(([key, label]) => (
           <button key={key} className="chip" aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}</button>
         ))}
       </div>
-      {error && <p role="alert" className="notice">{error}</p>}
-      {loading && <p role="status">Loading listings…</p>}
-      {!loading && !failed && supabase && !visible.length && <p className="empty">No listings in this category.</p>}
+      {error && <p role="alert" className="notice">{text[error]}</p>}
+      {loading && <p role="status">{text.loading}</p>}
+      {!loading && !failed && supabase && !visible.length && <p className="empty">{text.empty}</p>}
       <div className="card-grid">
         {visible.map(row => (
           <article className="card" key={row.id}>
             <img className="listing-img" src={row.image_url} alt={row.name} loading="lazy" referrerPolicy="no-referrer" />
             <div className="card-body">
-              <span className="label">{kinds[row.kind]} · {categories[row.category]}</span>
-              <h3>{row.name}</h3>
-              <p>{row.description}</p>
-              <p>Condition {conditions[row.condition]}</p>
+              <span className="label">{text.kinds[row.kind]} · {categories[row.category]}</span>
+              <h3 dir="auto">{row.name}</h3>
+              <p dir="auto">{row.description}</p>
+              <p>{text.condition} {text.conditions[row.condition]}</p>
               <p className="listing-value">{row.kind === 'sale'
-                ? new Intl.NumberFormat('en', { style: 'currency', currency: row.currency }).format(row.price)
-                : 'Loan terms · ' + row.loan_terms}</p>
+                ? new Intl.NumberFormat(language, { style: 'currency', currency: row.currency }).format(row.price)
+                : <>{text.loanTerms} · <bdi>{row.loan_terms}</bdi></>}</p>
               {row.owner_id === owner && (
                 deleting === row.id ? (
                   <div className="actions">
-                    <button className="danger" disabled={busy} onClick={() => remove(row.id)}>Confirm deletion</button>
-                    <button className="secondary" disabled={busy} onClick={() => setDeleting(null)}>Cancel</button>
+                    <button className="danger" disabled={busy} onClick={() => remove(row.id)}>{text.confirmDelete}</button>
+                    <button className="secondary" disabled={busy} onClick={() => setDeleting(null)}>{text.cancel}</button>
                   </div>
                 ) : (
                   <div className="actions">
-                    <button className="secondary" disabled={busy || Boolean(editor)} onClick={() => setEditor(row)}>Edit</button>
-                    <button className="quiet" disabled={busy || Boolean(editor)} onClick={() => setDeleting(row.id)}>Delete</button>
+                    <button className="secondary" disabled={busy || Boolean(editor)} onClick={() => setEditor(row)}>{text.edit}</button>
+                    <button className="quiet" disabled={busy || Boolean(editor)} onClick={() => setDeleting(row.id)}>{text.delete}</button>
                   </div>
                 )
               )}
