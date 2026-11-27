@@ -1,3 +1,4 @@
+.pl-app[dir='rtl'] { --place-stars-direction: to left; }
 /* Places + home section. Every class starts with pl- so it never clashes with teammates' CSS. */
 .pl-app { min-height: 100vh; }
 .pl-header { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line); background: var(--paper); }
@@ -38,7 +39,7 @@
 
 /* Stars */
 .pl-stars { display: flex; align-items: center; gap: .35rem; font-size: .95rem; }
-.pl-stars-track { background: linear-gradient(to left, #e0a526 var(--pct), #d6d3c4 var(--pct)); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: .05em; }
+.pl-stars-track { background: linear-gradient(var(--place-stars-direction, to right), #e0a526 var(--pct), #d6d3c4 var(--pct)); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: .05em; }
 .pl-stars-input { display: flex; gap: .15rem; }
 .pl-stars-input button { border: 0; padding: 0 .1rem; background: none; color: #d6d3c4; font-size: 1.8rem; line-height: 1; }
 .pl-stars-input button.is-on { color: #e0a526; }

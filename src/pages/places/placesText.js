@@ -1,5 +1,7 @@
-// All UI text for the places + home section lives here.
-export const t = {
+import { createContext, useContext } from 'react'
+
+const arabic = {
+  locale: 'ar-u-nu-latn',
   brand: 'فسحة',
   nav: { label: 'التنقل الرئيسي', home: 'الرئيسية', places: 'الأماكن', compare: 'المقارنة', equipment: 'المعدات' },
   status: {
@@ -26,7 +28,7 @@ export const t = {
     count: (n) => `${n} مكان`,
     empty: 'لا توجد أماكن تطابق بحثك. جرّب كلمات أو فلاتر أخرى.',
   },
-  sort: { rating: 'الأعلى تقييمًا', name: 'الاسم', fee: 'الأقل رسومًا' },
+  sort: { rating: 'الأعلى تقييمًا', name: 'الاسم' },
   card: {
     compareAdd: 'أضف للمقارنة',
     compareRemove: 'في المقارنة ✓',
@@ -42,6 +44,8 @@ export const t = {
     fee: 'رسوم الدخول',
     season: 'أفضل وقت للزيارة',
     city: 'المنطقة',
+    country: 'البلد',
+    difficulty: 'الصعوبة',
     facilities: 'المرافق',
     location: 'الموقع',
     openMap: 'افتح في الخريطة',
@@ -51,6 +55,8 @@ export const t = {
   },
   reviews: {
     title: 'التقييمات والمراجعات',
+    signIn: 'سجّل الدخول لتقييم هذا المكان',
+    unavailable: 'المراجعات غير متاحة حاليًا.',
     none: 'لا توجد مراجعات بعد. كن أول من يقيّم هذا المكان!',
     add: 'أضف مراجعتك',
     edit: 'تعديل مراجعتك',
@@ -67,7 +73,7 @@ export const t = {
     you: 'مراجعتك',
     needRating: 'اختر عدد النجوم أولًا.',
     needName: 'اكتب اسمك.',
-    needComment: 'اكتب رأيك (10 أحرف على الأقل).',
+    needComment: 'اكتب رأيك (من 10 إلى 500 حرف).',
     saveError: 'تعذّر الحفظ. حاول مرة أخرى.',
   },
   compare: {
@@ -100,4 +106,110 @@ export const t = {
       { to: '/store', title: 'المتجر', text: 'كل ما تحتاجه لرحلتك.' },
     ],
   },
+}
+
+const english = {
+  locale: 'en',
+  brand: 'FUSHA',
+  nav: { label: 'Main navigation', home: 'Home', places: 'Places', compare: 'Compare', equipment: 'Equipment' },
+  status: {
+    loading: 'Loading…',
+    error: 'Could not load the data. Check your connection and try again.',
+    retry: 'Try again',
+    notFound: 'Page not found.',
+    backHome: 'Back to home',
+  },
+  types: { desert: 'Desert', sea: 'Sea and beaches', forest: 'Forest', mountain: 'Mountains and reserves', valley: 'Valleys', heritage: 'History and heritage' },
+  explore: {
+    title: 'Explore places',
+    lead: 'Find your next destination and filter by region, category, or rating.',
+    search: 'Search by place or region…',
+    city: 'Region',
+    type: 'Category',
+    minRating: 'Minimum rating',
+    sort: 'Sort by',
+    all: 'All',
+    anyRating: 'Any rating',
+    ratingOption: (value) => `${value} stars and up`,
+    reset: 'Clear filters',
+    count: (count) => `${count} places`,
+    empty: 'No places match your search.',
+  },
+  sort: { rating: 'Highest rated', name: 'Name' },
+  card: {
+    compareAdd: 'Add to comparison',
+    compareRemove: 'Comparing ✓',
+    reviews: (count) => `${count} reviews`,
+    ratingLabel: (value) => `Rated ${value} out of 5`,
+  },
+  details: {
+    back: '← All places',
+    about: 'About this place',
+    info: 'Visitor information',
+    city: 'Region',
+    country: 'Country',
+    difficulty: 'Difficulty',
+    location: 'Location',
+    openMap: 'Open in map',
+    notFound: 'This place was not found.',
+    photo: (number) => `Photo ${number}`,
+    mapTitle: (name) => `Map of ${name}`,
+  },
+  reviews: {
+    title: 'Ratings and reviews',
+    signIn: 'Sign in to review this place',
+    unavailable: 'Reviews are currently unavailable.',
+    none: 'There are no reviews yet.',
+    add: 'Add your review',
+    edit: 'Edit your review',
+    comment: 'Your review',
+    yourRating: 'Your rating',
+    star: (number) => `${number} out of 5 stars`,
+    save: 'Post review',
+    update: 'Save changes',
+    cancel: 'Cancel',
+    editBtn: 'Edit',
+    deleteBtn: 'Delete',
+    confirmDelete: 'Delete your review?',
+    you: 'Your review',
+    needRating: 'Choose a rating first.',
+    needComment: 'Enter between 10 and 500 characters.',
+    saveError: 'Could not save the review. Try again.',
+  },
+  compare: {
+    title: 'Compare places',
+    lead: 'Compare up to three places side by side.',
+    empty: 'Select places to compare.',
+    pick: 'Add a place',
+    remove: 'Remove',
+    clear: 'Clear all',
+    browse: 'Browse places',
+    bar: (count) => `${count} of 3 places selected`,
+    open: 'Compare now',
+    best: 'Best',
+    full: 'Remove a place before adding another.',
+    rows: { rating: 'Rating', city: 'Region', type: 'Category' },
+  },
+  home: {
+    title: 'Find your next outdoor destination',
+    lead: 'Browse places, compare destinations, and read reviews before you go.',
+    search: 'Where would you like to go?',
+    go: 'Search',
+    types: 'Browse by category',
+    top: 'Highest rated places',
+    all: 'See all places →',
+    sections: 'Plan your outing',
+    links: [
+      { to: '/places', title: 'Places', text: 'Find places to visit and compare them.' },
+      { to: '/trips', title: 'Trips', text: 'Join a trip or plan your own.' },
+      { to: '/equipment', title: 'Equipment', text: 'Find gear and prepare a packing list.' },
+      { to: '/store', title: 'Store', text: 'Explore equipment for your next trip.' },
+    ],
+  },
+}
+
+export const PlacesLanguageContext = createContext('en')
+
+export function usePlacesText() {
+  return useContext(PlacesLanguageContext) === 'ar' ? arabic : english
 }

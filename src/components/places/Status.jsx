@@ -1,6 +1,7 @@
-import { t } from '../../pages/places/placesText'
+import { usePlacesText } from '../../pages/places/placesText'
 
 export function Loading() {
+  const t = usePlacesText()
   return (
     <div className="pl-state" role="status">
       <span className="pl-spinner" aria-hidden="true" />
@@ -9,10 +10,11 @@ export function Loading() {
   )
 }
 
-export function ErrorState({ message = t.status.error, onRetry }) {
+export function ErrorState({ message, onRetry }) {
+  const t = usePlacesText()
   return (
     <div className="pl-state pl-state-error" role="alert">
-      <p>{message}</p>
+      <p>{message ?? t.status.error}</p>
       {onRetry && <button type="button" onClick={onRetry}>{t.status.retry}</button>}
     </div>
   )

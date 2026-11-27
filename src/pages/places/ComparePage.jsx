@@ -5,17 +5,19 @@ import { EmptyState, ErrorState, Loading } from '../../components/places/Status'
 import { useAsync } from '../../hooks/useAsync'
 import { MAX_COMPARE, clearCompare, toggleCompare, useCompare } from '../../hooks/useCompare'
 import { getPlaces, getPlacesByIds } from '../../services/placesService'
-import { t } from './placesText'
+import { usePlacesText } from './placesText'
 
 const loadAll = () => getPlaces({ sort: 'name' })
 
 export default function ComparePage() {
+  const t = usePlacesText()
   const ids = useCompare()
   const key = ids.join(',')
   const load = useCallback(() => getPlacesByIds(key ? key.split(',') : []), [key])
   const { data: chosen, error, reload } = useAsync(load)
   const { data: all } = useAsync(loadAll)
   const options = all?.filter((place) => !ids.includes(place.id)) ?? []
+  const visible = chosen?.filter((place) => ids.includes(place.id))
 
   return (
     <div className="wrap pl-page">
@@ -46,8 +48,10 @@ export default function ComparePage() {
         <ErrorState onRetry={reload} />
       ) : !chosen ? (
         <Loading />
+      ) : visible.length ? (
+        <CompareTable places={visible} />
       ) : (
-        <CompareTable places={chosen.filter((place) => ids.includes(place.id))} />
+        <EmptyState><Link to="/places">{t.compare.browse}</Link></EmptyState>
       )}
     </div>
   )

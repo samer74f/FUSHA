@@ -1,7 +1,8 @@
-import { t } from '../../pages/places/placesText'
+import { usePlacesText } from '../../pages/places/placesText'
 
 // Read-only stars (value + optional count), or a 1–5 picker when onChange is given.
 export default function StarRating({ value = 0, count, onChange }) {
+  const t = usePlacesText()
   if (onChange) {
     return (
       <div className="pl-stars-input" role="radiogroup" aria-label={t.reviews.yourRating}>

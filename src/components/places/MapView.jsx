@@ -1,7 +1,8 @@
-import { t } from '../../pages/places/placesText'
+import { usePlacesText } from '../../pages/places/placesText'
 
 // OpenStreetMap embed: free, no key, no extra package.
 export default function MapView({ lat, lng, name }) {
+  const t = usePlacesText()
   const pad = 0.03
   const bbox = [lng - pad, lat - pad, lng + pad, lat + pad].join(',')
   const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`

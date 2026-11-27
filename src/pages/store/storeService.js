@@ -23,12 +23,24 @@ export async function getOrders(userId) {
     .order('created_at', { ascending: false })
 }
 
-export async function createOrder({ recipientName, phone, deliveryAddress, items }) {
+export async function getOrderByRequest(userId, requestId) {
+  return supabase.from('orders').select('id')
+    .eq('user_id', userId)
+    .eq('checkout_request_id', requestId)
+    .maybeSingle()
+}
+
+export async function createOrder({ recipientName, phone, deliveryAddress, items, requestId }) {
   return supabase.rpc('place_order', {
     p_recipient_name: recipientName,
     p_phone: phone,
     p_delivery_address: deliveryAddress,
-    p_items: items.map((item) => ({ product_id: item.product.id, quantity: item.quantity })),
+    p_items: items.map((item) => ({
+      product_id: item.product.id,
+      quantity: item.quantity,
+      unit_price: Number(item.product.price),
+    })),
+    p_request_id: requestId,
   })
 }
 

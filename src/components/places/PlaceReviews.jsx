@@ -1,20 +1,28 @@
 import { useCallback, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { useAuth } from '../auth/useAuth.js'
 import { useAsync } from '../../hooks/useAsync'
-import { t } from '../../pages/places/placesText'
-import { addReview, deleteReview, getReviewerId, getReviews, updateReview } from '../../services/placesService'
+import { usePlacesText } from '../../pages/places/placesText'
+import { addReview, deleteReview, getReviews, updateReview } from '../../services/placesService'
 import ReviewForm from './ReviewForm'
 import ReviewList from './ReviewList'
 import { ErrorState, Loading } from './Status'
 
-// Reviews section of a place: one review per user; onChange() lets the page refresh its average.
 export default function PlaceReviews({ placeId, onChange }) {
-  const load = useCallback(() => getReviews(placeId), [placeId])
+  const t = usePlacesText()
+  const { user, loading: sessionLoading } = useAuth()
+  const location = useLocation()
+  const me = user?.id ?? null
+  const load = useCallback(
+    () => getReviews(placeId, Boolean(me)),
+    [placeId, me],
+  )
   const { data: reviews, error, reload } = useAsync(load)
-  const [me] = useState(getReviewerId)
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
-  const mine = reviews?.find((review) => review.authorId === me)
+  const mine = me ? reviews?.find((review) => review.authorId === me) : null
+  const returnPath = location.pathname + location.search + location.hash
 
   async function save(values) {
     if (mine) await updateReview(mine.id, values)
@@ -25,11 +33,12 @@ export default function PlaceReviews({ placeId, onChange }) {
   }
 
   async function remove() {
-    if (!window.confirm(t.reviews.confirmDelete)) return
+    if (!mine || !window.confirm(t.reviews.confirmDelete)) return
     setDeleting(true)
     setDeleteError('')
     try {
       await deleteReview(mine.id)
+      setEditing(false)
       reload()
       onChange()
     } catch {
@@ -42,15 +51,22 @@ export default function PlaceReviews({ placeId, onChange }) {
   return (
     <section className="pl-panel pl-reviews" aria-labelledby="pl-reviews-title">
       <h2 id="pl-reviews-title">{t.reviews.title}</h2>
-      {error ? (
+      {error?.code === 'PGRST205' ? (
+        <p className="pl-muted">{t.reviews.unavailable}</p>
+      ) : error ? (
         <ErrorState onRetry={reload} />
       ) : !reviews ? (
         <Loading />
       ) : (
         <>
-          {(!mine || editing) && (
+          {!sessionLoading && !me && (
+            <p className="pl-muted">
+              <Link to="/login" state={{ from: { pathname: returnPath } }}>{t.reviews.signIn}</Link>
+            </p>
+          )}
+          {me && (!mine || editing) && (
             <ReviewForm
-              key={editing ? mine.id : 'new'}
+              key={editing ? mine?.id : me}
               initial={editing ? mine : undefined}
               onSubmit={save}
               onCancel={editing ? () => setEditing(false) : undefined}

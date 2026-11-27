@@ -1,7 +1,8 @@
 import { MAX_COMPARE, toggleCompare, useCompare } from '../../hooks/useCompare'
-import { t } from '../../pages/places/placesText'
+import { usePlacesText } from '../../pages/places/placesText'
 
 export default function CompareButton({ id }) {
+  const t = usePlacesText()
   const compareIds = useCompare()
   const picked = compareIds.includes(id)
   const full = !picked && compareIds.length >= MAX_COMPARE

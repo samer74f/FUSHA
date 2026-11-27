@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ProductCard from '../../components/store/ProductCard.jsx'
+import { useAuth } from '../../components/auth/useAuth.js'
 import { useCart } from '../../components/store/useCart.js'
 import { getProducts } from './storeService.js'
 import './store.css'
+import { useStoreLocale } from './storeLocale.js'
 
 export default function StorePage() {
+  const { language, direction, t } = useStoreLocale()
+  const { user } = useAuth()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
@@ -13,7 +17,7 @@ export default function StorePage() {
   const [category, setCategory] = useState('all')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
-  const [cartMessage, setCartMessage] = useState('')
+  const [cartMessage, setCartMessage] = useState(null)
   const { addItem, itemCount } = useCart()
 
   useEffect(() => {
@@ -58,60 +62,63 @@ export default function StorePage() {
 
   function handleAdd(product) {
     const message = addItem(product)
-    setCartMessage(message || `${product.name} was added to your cart.`)
+    setCartMessage(message ? { text: message } : {
+      text: '{product} was added to your cart.',
+      values: { product: product.name },
+    })
   }
 
   return (
-    <main className="store-page" dir="ltr">
+    <main className="store-page" lang={language} dir={direction}>
       <header className="store-header">
-        <Link className="store-brand" to="/">FUSHA<span>Your adventure starts here</span></Link>
-        <nav className="store-nav" aria-label="Store navigation">
-          <Link to="/store">Store</Link>
-          <Link to="/cart">Cart ({itemCount})</Link>
-          <Link to="/orders">My orders</Link>
-          <Link to="/profile">My account</Link>
+        <Link className="store-brand" to="/">FUSHA<span>{t('Your adventure starts here')}</span></Link>
+        <nav className="store-nav" aria-label={t('Store navigation')}>
+          <Link to="/store">{t('Store')}</Link>
+          <Link to="/cart">{user ? t('Cart ({count})', { count: itemCount }) : t('Cart')}</Link>
+          <Link to="/orders">{t('My orders')}</Link>
+          <Link to="/profile">{t('My account')}</Link>
         </nav>
       </header>
 
       <section className="store-hero">
-        <p className="store-eyebrow">Gear for every adventure</p>
-        <h1>Gear for your next trip</h1>
-        <p>Find what you need for exploring, camping, and other outdoor activities.</p>
+        <p className="store-eyebrow">{t('Gear for every adventure')}</p>
+        <h1>{t('Gear for your next trip')}</h1>
+        <p>{t('Find what you need for exploring, camping, and other outdoor activities.')}</p>
       </section>
 
-      <section className="store-content" aria-label="Products">
+      <section className="store-content" aria-label={t('Products')}>
         <div className="store-toolbar">
           <label>
-            <span>Search products</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tent, backpack, flashlight…" />
+            <span>{t('Search products')}</span>
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('Tent, backpack, flashlight…')} />
           </label>
           <label>
-            <span>Category</span>
+            <span>{t('Category')}</span>
             <select value={category} onChange={(event) => setCategory(event.target.value)}>
-              <option value="all">All categories</option>
+              <option value="all">{t('All categories')}</option>
               {categories.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
           <label>
-            <span>Minimum price (₪)</span>
-            <input type="number" min="0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="No limit" />
+            <span>{t('Minimum price (₪)')}</span>
+            <input type="number" min="0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder={t('No limit')} />
           </label>
           <label>
-            <span>Maximum price (₪)</span>
-            <input type="number" min="0" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="No limit" />
+            <span>{t('Maximum price (₪)')}</span>
+            <input type="number" min="0" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder={t('No limit')} />
           </label>
         </div>
 
-        {cartMessage && <p className="store-notice" role="status">{cartMessage} <Link to="/cart">View cart</Link></p>}
-        {loading && <p className="store-state" aria-live="polite">Loading products…</p>}
-        {!loading && errorMessage && <p className="store-state store-state-error" role="alert">{errorMessage}</p>}
+        {cartMessage && <p className="store-notice" role="status">{t(cartMessage.text, cartMessage.values)} <Link to="/cart">{t('View cart')}</Link></p>}
+        {loading && <p className="store-state" aria-live="polite">{t('Loading products…')}</p>}
+        {!loading && errorMessage && <p className="store-state store-state-error" role="alert">{t(errorMessage)}</p>}
         {!loading && !errorMessage && filteredProducts.length === 0 && (
-          <p className="store-state">No products match your search.</p>
+          <p className="store-state">{t('No products match your search.')}</p>
         )}
         {!loading && !errorMessage && filteredProducts.length > 0 && (
           <div className="store-grid">
             {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} onAdd={handleAdd} />
+              <ProductCard key={product.id} product={product} onAdd={handleAdd} canAdd={Boolean(user)} />
             ))}
           </div>
         )}

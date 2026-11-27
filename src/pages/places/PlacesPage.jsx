@@ -1,17 +1,18 @@
-import { useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import PlaceCard from '../../components/places/PlaceCard'
 import PlaceFilters from '../../components/places/PlaceFilters'
 import { EmptyState, ErrorState, Loading } from '../../components/places/Status'
 import { useAsync } from '../../hooks/useAsync'
-import { getPlaces } from '../../services/placesService'
-import { t } from './placesText'
+import { filterPlaces, getPlaces } from '../../services/placesService'
+import { usePlacesText } from './placesText'
+
+const loadPlaces = () => getPlaces()
 
 export default function PlacesPage() {
+  const t = usePlacesText()
   const [params, setParams] = useSearchParams()
-  const query = params.toString()
-  const load = useCallback(() => getPlaces(Object.fromEntries(new URLSearchParams(query))), [query])
-  const { data: list, loading, error, reload } = useAsync(load)
+  const { data: places, loading, error, reload } = useAsync(loadPlaces)
+  const list = places ? filterPlaces(places, Object.fromEntries(params)) : null
 
   function change(key, value) {
     if (!key) return setParams({}, { replace: true })
@@ -27,7 +28,7 @@ export default function PlacesPage() {
         <h1>{t.explore.title}</h1>
         <p className="pl-muted">{t.explore.lead}</p>
       </header>
-      <PlaceFilters params={params} onChange={change} />
+      <PlaceFilters places={places ?? []} params={params} onChange={change} />
       {error ? (
         <ErrorState onRetry={reload} />
       ) : !list ? (

@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom'
 import { clearCompare, useCompare } from '../../hooks/useCompare'
-import { t } from '../../pages/places/placesText'
+import { usePlacesText } from '../../pages/places/placesText'
 
 // Floating bar on every page (except /compare) once a place is picked.
 export default function CompareBar() {
+  const t = usePlacesText()
   const ids = useCompare()
   const { pathname } = useLocation()
   if (!ids.length || pathname === '/compare') return null

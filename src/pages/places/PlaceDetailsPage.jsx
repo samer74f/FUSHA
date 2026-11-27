@@ -8,9 +8,10 @@ import StarRating from '../../components/places/StarRating'
 import { ErrorState, Loading } from '../../components/places/Status'
 import { useAsync } from '../../hooks/useAsync'
 import { getPlace } from '../../services/placesService'
-import { t } from './placesText'
+import { usePlacesText } from './placesText'
 
 export default function PlaceDetailsPage() {
+  const t = usePlacesText()
   const { id } = useParams()
   const load = useCallback(() => getPlace(id), [id])
   const { data: place, error, reload } = useAsync(load)
@@ -24,7 +25,9 @@ export default function PlaceDetailsPage() {
     )
   }
   // Keep showing the page while it reloads (e.g. after a new review); show spinner only for a new place.
-  if (!place || place.id !== id) return <div className="wrap pl-page"><Loading /></div>
+  if (!place || (place.id !== id.toLowerCase() && place.slug !== id)) return <div className="wrap pl-page"><Loading /></div>
+  const category = t.types[place.type] ?? place.typeName
+  const hasLocation = Number.isFinite(place.lat) && Number.isFinite(place.lng)
 
   return (
     <div className="wrap pl-page">
@@ -32,8 +35,8 @@ export default function PlaceDetailsPage() {
       <header className="pl-details-head">
         <div className="pl-details-title">
           <p className="pl-chips">
-            <span className="pl-chip">{t.types[place.type]}</span>
-            <span className="pl-chip">{place.city}</span>
+            {category && <span className="pl-chip">{category}</span>}
+            {place.region && <span className="pl-chip">{place.region}</span>}
           </p>
           <h1>{place.name}</h1>
           <StarRating value={place.rating} count={place.reviewCount} />
@@ -41,26 +44,26 @@ export default function PlaceDetailsPage() {
         <CompareButton id={place.id} />
       </header>
 
-      <Gallery key={place.id} images={place.images} name={place.name} />
+      <Gallery key={place.id} pictures={place.pictures} name={place.name} />
 
       <div className="pl-details-grid">
         <section className="pl-panel">
           <h2>{t.details.about}</h2>
           <p>{place.description}</p>
-          <h3>{t.details.facilities}</h3>
-          <ul className="pl-facilities">
-            {place.facilities.map((key) => <li key={key}>{t.facilities[key]}</li>)}
-          </ul>
         </section>
         <aside className="pl-panel">
           <h2>{t.details.info}</h2>
           <dl className="pl-info">
-            <div><dt>{t.details.fee}</dt><dd>{place.entryFee ? t.card.fee(place.entryFee) : t.card.free}</dd></div>
-            <div><dt>{t.details.season}</dt><dd>{place.season}</dd></div>
-            <div><dt>{t.details.city}</dt><dd>{place.city}</dd></div>
+            {place.region && <div><dt>{t.details.city}</dt><dd>{place.region}</dd></div>}
+            {place.country && <div><dt>{t.details.country}</dt><dd>{place.country}</dd></div>}
+            {place.difficulty && <div><dt>{t.details.difficulty}</dt><dd>{place.difficulty}</dd></div>}
           </dl>
-          <h3>{t.details.location}</h3>
-          <MapView lat={place.lat} lng={place.lng} name={place.name} />
+          {hasLocation && (
+            <>
+              <h3>{t.details.location}</h3>
+              <MapView lat={place.lat} lng={place.lng} name={place.name} />
+            </>
+          )}
         </aside>
       </div>
 

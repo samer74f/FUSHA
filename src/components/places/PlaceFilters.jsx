@@ -1,10 +1,12 @@
-import { cities, placeTypes } from '../../pages/places/placesData'
-import { t } from '../../pages/places/placesText'
+import { usePlacesText } from '../../pages/places/placesText'
 
 const minRatings = ['4.5', '4', '3']
 
-// Controlled by URL search params; onChange(key, value), or onChange(null) to reset all.
-export default function PlaceFilters({ params, onChange }) {
+export default function PlaceFilters({ places, params, onChange }) {
+  const t = usePlacesText()
+  const regions = [...new Set(places.map((place) => place.region).filter(Boolean))].sort()
+  const categories = [...new Map(places.filter((place) => place.type)
+    .map((place) => [place.type, t.types[place.type] ?? place.typeName])).entries()]
   const bind = (key) => ({ value: params.get(key) ?? '', onChange: (event) => onChange(key, event.target.value) })
 
   return (
@@ -14,14 +16,14 @@ export default function PlaceFilters({ params, onChange }) {
         {t.explore.city}
         <select {...bind('city')}>
           <option value="">{t.explore.all}</option>
-          {cities.map((city) => <option key={city} value={city}>{city}</option>)}
+          {regions.map((region) => <option key={region} value={region}>{region}</option>)}
         </select>
       </label>
       <label>
         {t.explore.type}
         <select {...bind('type')}>
           <option value="">{t.explore.all}</option>
-          {placeTypes.map((type) => <option key={type} value={type}>{t.types[type]}</option>)}
+          {categories.map(([slug, name]) => <option key={slug} value={slug}>{name}</option>)}
         </select>
       </label>
       <label>

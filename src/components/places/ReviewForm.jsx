@@ -1,28 +1,29 @@
 import { useState } from 'react'
-import { t } from '../../pages/places/placesText'
+import { usePlacesText } from '../../pages/places/placesText'
 import StarRating from './StarRating'
 
-// Create or edit a review. onSubmit({ author, rating, comment }) must return a promise.
 export default function ReviewForm({ initial, onSubmit, onCancel }) {
+  const t = usePlacesText()
   const [rating, setRating] = useState(initial?.rating ?? 0)
-  const [author, setAuthor] = useState(initial?.author ?? '')
   const [comment, setComment] = useState(initial?.comment ?? '')
   const [problem, setProblem] = useState('')
   const [busy, setBusy] = useState(false)
 
   async function submit(event) {
     event.preventDefault()
+    const cleanComment = comment.trim()
+    const length = Array.from(cleanComment).length
     const issue = !rating ? t.reviews.needRating
-      : !author.trim() ? t.reviews.needName
-        : comment.trim().length < 10 ? t.reviews.needComment
-          : ''
+      : (length < 10 || length > 500) ? t.reviews.needComment
+        : ''
     setProblem(issue)
     if (issue) return
     setBusy(true)
     try {
-      await onSubmit({ author: author.trim(), rating, comment: comment.trim() })
+      await onSubmit({ rating, comment: cleanComment })
     } catch {
       setProblem(t.reviews.saveError)
+    } finally {
       setBusy(false)
     }
   }
@@ -32,17 +33,13 @@ export default function ReviewForm({ initial, onSubmit, onCancel }) {
       <h3>{initial ? t.reviews.edit : t.reviews.add}</h3>
       <StarRating value={rating} onChange={setRating} />
       <label>
-        {t.reviews.name}
-        <input className="pl-field" value={author} maxLength={40} onChange={(event) => setAuthor(event.target.value)} />
-      </label>
-      <label>
         {t.reviews.comment}
         <textarea className="pl-field" rows={3} value={comment} maxLength={500} onChange={(event) => setComment(event.target.value)} />
       </label>
       {problem && <p className="pl-form-error" role="alert">{problem}</p>}
       <div className="pl-form-actions">
         <button type="submit" disabled={busy}>{initial ? t.reviews.update : t.reviews.save}</button>
-        {onCancel && <button type="button" className="pl-btn-ghost" onClick={onCancel}>{t.reviews.cancel}</button>}
+        {onCancel && <button type="button" className="pl-btn-ghost" onClick={onCancel} disabled={busy}>{t.reviews.cancel}</button>}
       </div>
     </form>
   )

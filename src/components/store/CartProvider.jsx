@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../auth/useAuth.js'
 import { supabase } from '../auth/supabaseClient.js'
+import { PRODUCT_FIELDS } from '../../pages/store/storeService.js'
 import { CartContext } from './CartContext.js'
 
 const EMPTY_CART = []
@@ -15,10 +16,23 @@ function readCart(storageKey) {
   }
 }
 
+async function fetchCart(userId) {
+  const { data, error } = await supabase
+    .from('cart_items')
+    .select(`quantity, product:products(${PRODUCT_FIELDS})`)
+    .eq('user_id', userId)
+
+  if (error) throw error
+  return (data ?? [])
+    .filter((row) => row.product)
+    .map((row) => ({ product: row.product, quantity: row.quantity }))
+}
+
 export function CartProvider({ children }) {
   const { user, loading: authLoading } = useAuth()
   const storageKey = `fusha-cart:${user?.id ?? 'guest'}`
   const [cartState, setCartState] = useState({ storageKey: '', items: [], loading: true, notice: '' })
+  const cartSync = useRef(Promise.resolve())
   const items = cartState.storageKey === storageKey ? cartState.items : EMPTY_CART
 
   useEffect(() => {
@@ -32,16 +46,7 @@ export function CartProvider({ children }) {
 
       if (user?.id) {
         try {
-          const { data, error } = await supabase
-            .from('cart_items')
-            .select('quantity, product:products(id, name, description, price, category, image_url, stock, is_active)')
-            .eq('user_id', user.id)
-
-          if (error) throw error
-
-          nextItems = (data ?? [])
-            .filter((row) => row.product)
-            .map((row) => ({ product: row.product, quantity: row.quantity }))
+          nextItems = await fetchCart(user.id)
         } catch {
           notice = 'We could not sync your cart with Supabase. Your cart is saved on this device.'
         }
@@ -66,22 +71,34 @@ export function CartProvider({ children }) {
     }
   }, [cartState, storageKey])
 
-  async function syncRemoteItem(product, quantity) {
+  function setNotice(notice) {
+    setCartState((current) =>
+      current.storageKey === storageKey ? { ...current, notice } : current,
+    )
+  }
+
+  function queueCartSync(sync) {
+    cartSync.current = cartSync.current.then(async () => {
+      try {
+        const { error } = await sync()
+        if (error) throw error
+      } catch {
+        setNotice('Your cart could not sync with the database. It is still saved on this device.')
+      }
+    })
+  }
+
+  function syncRemoteItem(product, quantity) {
     if (!user?.id) return
 
-    try {
-      const { error } = await supabase.from('cart_items').upsert(
-        { user_id: user.id, product_id: product.id, quantity },
-        { onConflict: 'user_id,product_id' },
-      )
+    queueCartSync(() => supabase.from('cart_items').upsert(
+      { user_id: user.id, product_id: product.id, quantity },
+      { onConflict: 'user_id,product_id' },
+    ))
+  }
 
-      if (error) throw error
-    } catch {
-      setCartState((current) => ({
-        ...current,
-        notice: 'Your cart could not sync with the database. It is still saved on this device.',
-      }))
-    }
+  function waitForCartSync() {
+    return cartSync.current
   }
 
   function updateItems(update) {
@@ -96,7 +113,7 @@ export function CartProvider({ children }) {
       return 'Your cart is loading. Try again in a moment.'
     }
 
-    if (!Number.isInteger(Number(product.stock)) || Number(product.stock) <= 0) {
+    if (product.is_active === false || !Number.isInteger(Number(product.stock)) || Number(product.stock) <= 0) {
       return 'This product is currently unavailable.'
     }
 
@@ -112,7 +129,7 @@ export function CartProvider({ children }) {
       if (foundItem) {
         return currentItems.map((item) =>
           item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { product, quantity: item.quantity + 1 }
             : item,
         )
       }
@@ -131,7 +148,6 @@ export function CartProvider({ children }) {
     }
 
     const item = items.find((cartItem) => cartItem.product.id === productId)
-
     if (!item) return 'We could not find this product in your cart.'
     if (quantity > Number(item.product.stock)) return 'The requested quantity exceeds the available stock.'
 
@@ -148,25 +164,46 @@ export function CartProvider({ children }) {
 
   function removeItem(productId) {
     updateItems((currentItems) => currentItems.filter((item) => item.product.id !== productId))
-
     if (user?.id) {
-      supabase.from('cart_items').delete().eq('user_id', user.id).eq('product_id', productId)
-        .then(({ error }) => {
-          if (error) setCartState((current) => ({ ...current, notice: 'We could not update the cart saved in the database.' }))
-        })
-        .catch(() => setCartState((current) => ({ ...current, notice: 'We could not connect to remove the product from your saved cart.' })))
+      queueCartSync(() =>
+        supabase.from('cart_items').delete().eq('user_id', user.id).eq('product_id', productId),
+      )
     }
   }
 
-  function clearCart() {
-    updateItems(() => [])
+  async function refreshCartProducts() {
+    const productIds = items.map((item) => item.product.id)
+    if (!productIds.length) return
 
-    if (user?.id) {
-      supabase.from('cart_items').delete().eq('user_id', user.id)
-        .then(({ error }) => {
-          if (error) setCartState((current) => ({ ...current, notice: 'We could not clear the cart saved in the database.' }))
-        })
-        .catch(() => setCartState((current) => ({ ...current, notice: 'We could not connect to clear your saved cart.' })))
+    const { data, error } = await supabase.from('products')
+      .select(PRODUCT_FIELDS)
+      .in('id', productIds)
+      .eq('is_active', true)
+
+    if (error) throw error
+
+    const products = new Map((data ?? []).map((product) => [product.id, product]))
+    updateItems((currentItems) => currentItems.map((item) => {
+      if (!productIds.includes(item.product.id)) return item
+      const product = products.get(item.product.id) ?? { ...item.product, stock: 0, is_active: false }
+      return { ...item, product }
+    }))
+  }
+
+  async function reloadAfterCheckout(orderedItems = []) {
+    if (!user?.id) return
+
+    // The checkout RPC removes the purchased rows. Refresh the remaining cart.
+    try {
+      const remainingItems = await fetchCart(user.id)
+      updateItems(() => remainingItems)
+      setNotice('')
+    } catch {
+      updateItems((currentItems) => currentItems.filter((item) =>
+        !orderedItems.some((ordered) =>
+          ordered.product.id === item.product.id && ordered.quantity === item.quantity),
+      ))
+      setNotice('Your order is confirmed. Refresh to sync the remaining cart.')
     }
   }
 
@@ -185,7 +222,9 @@ export function CartProvider({ children }) {
     addItem,
     setQuantity,
     removeItem,
-    clearCart,
+    waitForCartSync,
+    refreshCartProducts,
+    reloadAfterCheckout,
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

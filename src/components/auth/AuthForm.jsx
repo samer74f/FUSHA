@@ -172,7 +172,7 @@ export default function AuthForm({ mode, language = 'en' }) {
 
         <p className="auth-switch">
           {isRegister ? text.haveAccount : text.needAccount}{' '}
-          <Link to={isRegister ? '/login' : '/register'}>
+          <Link to={isRegister ? '/login' : '/register'} state={location.state}>
             {isRegister ? text.signIn : text.registerTitle}
           </Link>
         </p>

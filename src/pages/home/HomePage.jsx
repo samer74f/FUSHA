@@ -1,16 +1,19 @@
 import { useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import PlaceCard from '../../components/places/PlaceCard'
-import { ErrorState, Loading } from '../../components/places/Status'
+import { EmptyState, ErrorState, Loading } from '../../components/places/Status'
 import { useAsync } from '../../hooks/useAsync'
 import { getPlaces } from '../../services/placesService'
-import { placeTypes, typeIcons } from '../places/placesData'
-import { t } from '../places/placesText'
+import { typeIcons } from '../places/placesData'
+import { usePlacesText } from '../places/placesText'
 
 export default function HomePage() {
+  const t = usePlacesText()
   const navigate = useNavigate()
   const load = useCallback(() => getPlaces({ sort: 'rating' }), [])
   const { data: places, error, reload } = useAsync(load)
+  const categories = [...new Map((places ?? []).filter((place) => place.type)
+    .map((place) => [place.type, t.types[place.type] ?? place.typeName])).entries()]
 
   function search(event) {
     event.preventDefault()
@@ -32,17 +35,17 @@ export default function HomePage() {
       </section>
 
       <div className="wrap pl-page">
-        <section className="pl-home-block" aria-labelledby="pl-home-types">
+        {categories.length > 0 && <section className="pl-home-block" aria-labelledby="pl-home-types">
           <h2 id="pl-home-types">{t.home.types}</h2>
           <div className="pl-type-grid">
-            {placeTypes.map((type) => (
+            {categories.map(([type, label]) => (
               <Link key={type} to={`/places?type=${type}`} className="pl-type-tile">
                 <span aria-hidden="true">{typeIcons[type]}</span>
-                {t.types[type]}
+                {label}
               </Link>
             ))}
           </div>
-        </section>
+        </section>}
 
         <section className="pl-home-block" aria-labelledby="pl-home-top">
           <div className="pl-block-head">
@@ -53,6 +56,8 @@ export default function HomePage() {
             <ErrorState onRetry={reload} />
           ) : !places ? (
             <Loading />
+          ) : !places.length ? (
+            <EmptyState>{t.explore.empty}</EmptyState>
           ) : (
             <div className="pl-grid">
               {places.slice(0, 3).map((place) => <PlaceCard key={place.id} place={place} />)}

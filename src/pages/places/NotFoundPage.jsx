@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
-import { t } from './placesText'
+import { usePlacesText } from './placesText'
 
 export default function NotFoundPage() {
+  const t = usePlacesText()
   return (
     <div className="wrap pl-page pl-state">
       <h1>404</h1>
