@@ -1,0 +1,41 @@
+.create-trip-page {
+  max-inline-size: 46rem;
+  margin-inline: auto;
+}
+
+.trip-form {
+  margin-block-start: 1.25rem;
+}
+
+.trip-form fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.trip-form-wide {
+  grid-column: 1 / -1;
+}
+
+.trip-form textarea {
+  resize: vertical;
+}
+
+.trip-form small {
+  color: var(--trip-muted);
+  font-weight: 400;
+}
+
+.trip-form .trip-actions {
+  margin-block-start: 1.25rem;
+}
+
+@media (max-width: 36rem) {
+  .trip-form fieldset {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

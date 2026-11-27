@@ -1,0 +1,80 @@
+.release-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f7f5ed;
+  color: #244b38;
+  font-family: Tahoma, system-ui, sans-serif;
+}
+
+.release-header,
+.release-footer {
+  padding: 0.75rem 1rem;
+  background: #fff;
+}
+
+.release-header {
+  border-bottom: 1px solid #dedfd3;
+}
+
+.release-nav {
+  max-width: 70rem;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+
+.release-nav a {
+  padding: 0.4rem;
+  color: #244b38;
+  text-decoration: none;
+}
+
+.release-nav a[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.release-nav .release-brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.release-main {
+  width: min(70rem, calc(100% - 2rem));
+  margin: clamp(1.25rem, 4vw, 3rem) auto;
+}
+
+.release-hero {
+  border-radius: 1rem;
+  padding: clamp(1.5rem, 5vw, 3.5rem);
+  background: #244b38;
+  color: #fff;
+}
+
+.release-hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+}
+
+.release-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.release-actions a {
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.5rem;
+  color: #244b38;
+  background: #fff;
+}
+
+.release-footer {
+  margin-top: auto;
+  border-top: 1px solid #dedfd3;
+  text-align: center;
+}
