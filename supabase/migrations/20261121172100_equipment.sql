@@ -64,23 +64,23 @@ create policy "Owners manage their packing items" on public.packing_items for al
   using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
 
 insert into public.equipment (id, kind, owner_id, category, name, description, usage, selection_tips) values
-  ('packs', 'guide', null, 'packs', 'حقيبة ظهر للمشي', 'حقيبة بحزام خصر لتوزيع الوزن وجيوب يسهل الوصول إليها.', 'ضع الأغراض الثقيلة قرب ظهرك واضبط حزام الخصر قبل شد أحزمة الكتفين.', 'جرّب الحقيبة بوزن قريب من حمولة رحلتك واختر سعة تناسب المدة.'),
-  ('boots', 'guide', null, 'boots', 'حذاء للمسارات', 'حذاء بنعل متماسك يحمي القدم على الأسطح الوعرة.', 'جرّبه في مشاوير قصيرة قبل الرحلة واربطه بحيث يثبت الكعب.', 'جرّبه بجوارب الرحلة واترك مساحة لحركة الأصابع عند النزول.'),
-  ('tents', 'guide', null, 'tents', 'خيمة تخييم', 'مأوى خفيف للمبيت في الهواء الطلق.', 'اختر سطحًا مستويًا وموقعًا مسموحًا، ثم ثبّت الأوتاد وافتح منافذ التهوية.', 'وازن بين السعة والوزن ومقاومة المطر والرياح المتوقعة.'),
-  ('sleeping', 'guide', null, 'sleeping', 'كيس نوم', 'طبقة عازلة تساعد على الاحتفاظ بحرارة الجسم أثناء النوم.', 'افرده قبل النوم واستخدم تحته فرشة عازلة. خزّنه جافًا ومفكوك الضغط.', 'اختر درجة الراحة بناءً على أقل حرارة ليلية متوقعة.'),
-  ('cooking', 'guide', null, 'cooking', 'عدة طبخ للتخييم', 'قدر خفيف وموقد محمول لإعداد وجبات بسيطة.', 'شغّل الموقد خارج الخيمة على سطح ثابت واتبع تعليمات الصانع.', 'تحقق من توفر الوقود المناسب واختر سعة القدر حسب حجم المجموعة.'),
-  ('lighting', 'guide', null, 'lighting', 'مصباح تخييم', 'إضاءة محمولة للتنقل والعمل بعد حلول الظلام.', 'اشحنه قبل الرحلة واستخدم مستوى الإضاءة المناسب لتوفير الطاقة.', 'قارن مدة التشغيل ومقاومة الماء، واختر مصباح رأس عند الحاجة إلى يدين حرتين.'),
-  ('clothes', 'guide', null, 'clothes', 'سترة للمسارات', 'طبقة خارجية تحمي من الرياح وتساعد على التكيف مع الطقس.', 'ارتدها فوق طبقة أساسية وأضف طبقة دافئة عند انخفاض الحرارة.', 'اختر تهوية جيدة ومساحة كافية للطبقات وفق طقس الرحلة.'),
-  ('safety', 'guide', null, 'safety', 'حقيبة إسعافات أولية', 'مستلزمات أساسية للعناية بالإصابات البسيطة أثناء الرحلة.', 'احفظها في جيب يسهل الوصول إليه وراجع المحتويات وتواريخ الصلاحية.', 'اختر محتويات تناسب عدد الأشخاص وطول الرحلة ومدى بُعدها عن الخدمات.');
+  ('packs', 'guide', null, 'packs', 'Hiking backpack', 'A backpack with a hip belt to distribute weight and easy-access pockets.', 'Pack heavy items close to your back and adjust the hip belt before tightening the shoulder straps.', 'Try the pack with a realistic load and choose a capacity that suits the length of your trip.'),
+  ('boots', 'guide', null, 'boots', 'Hiking boots', 'Footwear with grippy soles for uneven trails.', 'Wear them on short walks before your trip and lace them to hold your heel securely.', 'Try them with your hiking socks and leave room for your toes on descents.'),
+  ('tents', 'guide', null, 'tents', 'Camping tent', 'A lightweight shelter for overnight trips.', 'Choose a level, permitted campsite, secure the stakes, and open the vents.', 'Balance space, weight, and protection from rain and wind.'),
+  ('sleeping', 'guide', null, 'sleeping', 'Sleeping bag', 'An insulated layer that keeps you warm overnight.', 'Unroll it before bed, use a sleeping pad underneath, and store it dry and uncompressed.', 'Choose a comfort rating for the lowest temperature you expect at night.'),
+  ('cooking', 'guide', null, 'cooking', 'Camping cookware', 'A lightweight pot and portable stove for simple meals.', 'Use the stove outside the tent on a stable surface and follow the manufacturer instructions.', 'Check that compatible fuel is available and choose a pot large enough for your group.'),
+  ('lighting', 'guide', null, 'lighting', 'Camping light', 'Portable lighting for moving around and working after dark.', 'Charge it before the trip and use a brightness setting that saves power.', 'Compare runtime and water resistance. Choose a headlamp when you need both hands free.'),
+  ('clothes', 'guide', null, 'clothes', 'Trail jacket', 'An outer layer that blocks wind and helps you adapt to changing weather.', 'Wear it over a base layer and add insulation when temperatures drop.', 'Look for a breathable jacket with enough room for layers.'),
+  ('safety', 'guide', null, 'safety', 'First aid kit', 'Basic supplies for treating minor injuries outdoors.', 'Keep it in an easy-access pocket and check the supplies and expiration dates.', 'Pack for the group size, trip length, and distance from assistance.');
 
 insert into public.packing_templates (id, trip_type, terrain, min_days, items) values
-  ('essentials', null, null, 1, array['ماء للشرب', 'وجبات خفيفة', 'حقيبة إسعافات أولية', 'هاتف مشحون']),
-  ('hiking', 'hiking', null, 1, array['حذاء للمسارات', 'خريطة تعمل دون اتصال', 'حقيبة ظهر']),
-  ('camping', 'camping', null, 1, array['خيمة', 'كيس نوم', 'فرشة عازلة', 'مصباح', 'عدة طبخ']),
-  ('picnic', 'picnic', null, 1, array['بساط جلوس', 'علبة طعام', 'كيس للنفايات']),
-  ('overnight', null, null, 2, array['ملابس إضافية', 'بطارية متنقلة', 'فرشة عازلة', 'مصباح']),
-  ('extended', null, null, 3, array['وجبات إضافية', 'مستلزمات النظافة', 'مصدر احتياطي للطاقة']),
-  ('mountain', null, 'mountain', 1, array['سترة واقية من الرياح', 'عصي مشي']),
-  ('desert', null, 'desert', 1, array['ماء إضافي', 'قبعة شمس', 'واقي الشمس']),
-  ('forest', null, 'forest', 1, array['طارد حشرات', 'سترة مطر']),
-  ('coast', null, 'coast', 1, array['واقي الشمس', 'حافظة مقاومة للماء']);
+  ('essentials', null, null, 1, array['Drinking water', 'Snacks', 'First aid kit', 'Charged phone']),
+  ('hiking', 'hiking', null, 1, array['Hiking boots', 'Offline map', 'Backpack']),
+  ('camping', 'camping', null, 1, array['Tent', 'Sleeping bag', 'Sleeping pad', 'Light', 'Cooking kit']),
+  ('picnic', 'picnic', null, 1, array['Picnic blanket', 'Food container', 'Trash bags']),
+  ('overnight', null, null, 2, array['Extra clothes', 'Power bank', 'Sleeping pad', 'Light']),
+  ('extended', null, null, 3, array['Extra snacks', 'Toiletries', 'Backup power source']),
+  ('mountain', null, 'mountain', 1, array['Windproof jacket', 'Trekking poles']),
+  ('desert', null, 'desert', 1, array['Extra water', 'Sun hat', 'Sunscreen']),
+  ('forest', null, 'forest', 1, array['Insect repellent', 'Rain jacket']),
+  ('coast', null, 'coast', 1, array['Sunscreen', 'Waterproof pouch']);

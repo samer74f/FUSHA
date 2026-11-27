@@ -66,11 +66,6 @@ function TripList({ text, language, user }) {
 
 function TripsSection({ loginPath }) {
   const location = useLocation();
-  const [language, setLanguage] = useState(() => {
-    const savedLanguage = window.localStorage.getItem("fusha-trips-language");
-    if (savedLanguage === "ar" || savedLanguage === "en") return savedLanguage;
-    return document.documentElement.lang.startsWith("ar") ? "ar" : "en";
-  });
   const [user, setUser] = useState(tripSupabase ? undefined : null);
 
   useEffect(() => {
@@ -81,22 +76,13 @@ function TripsSection({ loginPath }) {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  function handleChangeLanguage() {
-    const nextLanguage = language === "ar" ? "en" : "ar";
-    window.localStorage.setItem("fusha-trips-language", nextLanguage);
-    setLanguage(nextLanguage);
-  }
-
-  const text = tripText[language];
-  const pageProps = { text, language, user, loginPath };
+  const pageProps = { text: tripText, language: "en", user, loginPath };
 
   return (
-    <section className="trips-page" lang={language} dir={language === "ar" ? "rtl" : "ltr"}>
+    <section className="trips-page" lang="en" dir="ltr">
       <div className="trips-content">
         <div className="trip-toolbar">
-          <Link className="trip-brand" to="/trips">{language === "ar" ? "فُسحة" : "FUSHA"}</Link>
-          <button className="trip-button trip-secondary" type="button" lang={language === "ar" ? "en" : "ar"}
-            onClick={handleChangeLanguage}>{text.switchLanguage}</button>
+          <Link className="trip-brand" to="/trips">FUSHA</Link>
         </div>
         <Routes key={location.pathname}>
           <Route index element={<TripList {...pageProps} />} />

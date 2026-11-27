@@ -8,7 +8,7 @@ export default function ProtectedRoute({ children }) {
   if (loading) {
     return (
       <main className="auth-page" aria-live="polite">
-        <p className="auth-message">جارٍ التحقق من الجلسة…</p>
+        <p className="auth-message">Checking your session…</p>
       </main>
     )
   }

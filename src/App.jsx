@@ -7,7 +7,7 @@ import EquipmentPage from "./pages/equipment/EquipmentPage.jsx";
 import ProfilePage from "./pages/profile/ProfilePage.jsx";
 import Trips from "./pages/trips/Trips.jsx";
 import "./components/auth/auth.css";
-import "./styles/release-shell.css";
+import "./styles/SiteLayout.css";
 
 function SiteHeader() {
   const { user, loading } = useAuth();
@@ -17,15 +17,15 @@ function SiteHeader() {
   const loginState = isAuthPage ? undefined : { from: { pathname: returnPath } };
 
   return (
-    <header className="release-header">
-      <nav className="release-nav" aria-label="التنقّل الرئيسي">
-        <Link className="release-brand" to="/">فُسحة</Link>
-        <NavLink end to="/">الرئيسية</NavLink>
-        <NavLink to="/trips">الرحلات</NavLink>
-        <NavLink to="/equipment">المعدات</NavLink>
+    <header className="site-layout-header">
+      <nav className="site-navigation" aria-label="Main navigation">
+        <Link className="site-brand" to="/">FUSHA</Link>
+        <NavLink end to="/">Home</NavLink>
+        <NavLink to="/trips">Trips</NavLink>
+        <NavLink to="/equipment">Equipment</NavLink>
         {!loading && (user
-          ? <NavLink to="/profile">ملفي الشخصي</NavLink>
-          : <NavLink to="/login" state={loginState}>تسجيل الدخول</NavLink>)}
+          ? <NavLink to="/profile">My profile</NavLink>
+          : <NavLink to="/login" state={loginState}>Sign in</NavLink>)}
       </nav>
     </header>
   );
@@ -33,43 +33,43 @@ function SiteHeader() {
 
 function HomePage() {
   return (
-    <main className="release-main">
-      <section className="release-hero">
-        <h1>فُسحة</h1>
-        <p>خطّط لرحلتك وجهّز المعدات اللي بتحتاجها.</p>
-        <div className="release-actions">
-          <Link to="/trips">استكشف الرحلات</Link>
-          <Link to="/equipment">دليل المعدات</Link>
+    <main className="site-content">
+      <section className="home-intro">
+        <h1>FUSHA</h1>
+        <p>Plan your trip and find the gear you need.</p>
+        <div className="home-links">
+          <Link to="/trips">Explore trips</Link>
+          <Link to="/equipment">Equipment guide</Link>
         </div>
       </section>
     </main>
   );
 }
 
-function StorePending() {
+function StoreComingSoonPage() {
   return (
-    <main className="release-main">
-      <h1>المتجر قيد التجهيز</h1>
-      <Link to="/">العودة إلى الرئيسية</Link>
+    <main className="site-content">
+      <h1>Store coming soon</h1>
+      <Link to="/">Back to home</Link>
     </main>
   );
 }
 
 function App() {
   return (
-    <div className="release-shell">
+    <div className="site-layout">
       <SiteHeader />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/trips/*" element={<Trips loginPath="/login" />} />
-        <Route path="/equipment" element={<div className="equipment-shell" lang="ar" dir="rtl"><EquipmentPage /></div>} />
+        <Route path="/equipment" element={<div className="equipment-shell"><EquipmentPage /></div>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        <Route path="/store" element={<StorePending />} />
+        <Route path="/store" element={<StoreComingSoonPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <footer className="release-footer">فُسحة · NewTech Academy</footer>
+      <footer className="site-layout-footer">FUSHA · NewTech Academy</footer>
     </div>
   );
 }
