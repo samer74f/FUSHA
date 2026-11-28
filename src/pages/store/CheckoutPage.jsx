@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../components/auth/useAuth.js'
 import { useCart } from '../../components/store/useCart.js'
 import { clearCheckoutRequest, getCheckoutRequest, readCheckoutRequest } from './checkoutRequest.js'
-import { createOrder, getOrderByRequest } from './storeService.js'
+import { createOrder, getOrderByRequest, isCheckoutAvailable } from './storeService.js'
 import './store.css'
 import { useStoreLocale } from './storeLocale.js'
+
+const checkoutUnavailable = 'Checkout is temporarily unavailable. You can keep browsing the store.'
 
 const quoteErrors = {
   FUSHA_PRICE_CHANGED: 'A product price changed. Review the updated total before placing your order.',
@@ -24,6 +26,24 @@ export default function CheckoutPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [showOrderRecovery, setShowOrderRecovery] = useState(() => Boolean(readCheckoutRequest(user.id)))
+  const [checkoutReady, setCheckoutReady] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+
+    async function checkCheckout() {
+      try {
+        const ready = await isCheckoutAvailable()
+        if (mounted) setCheckoutReady(ready)
+      } catch {
+        if (mounted) setCheckoutReady(false)
+      }
+    }
+
+    checkCheckout()
+    return () => { mounted = false }
+  }, [])
+
   const hasUnavailableItems = items.some((item) =>
     item.product.is_active === false || item.quantity > Number(item.product.stock),
   )
@@ -67,7 +87,7 @@ export default function CheckoutPage() {
 
   async function handleSubmit(event) {
     event.preventDefault()
-    if (submitting || loading) return
+    if (!checkoutReady || submitting || loading) return
 
     setErrorMessage('')
     if (!items.length) {
@@ -106,6 +126,8 @@ export default function CheckoutPage() {
         await finishOrder(result.data, requestId, items)
       } else if (quoteErrors[result.error?.message]) {
         await updateQuote(quoteErrors[result.error.message])
+      } else if (result.error?.code === 'PGRST202') {
+        setCheckoutReady(false)
       } else if (result.error?.message === 'FUSHA_REQUEST_ALREADY_USED') {
         setShowOrderRecovery(true)
         setErrorMessage('Your earlier checkout was already placed. Use Check previous order to open it.')
@@ -135,8 +157,10 @@ export default function CheckoutPage() {
           <label className="store-field"><span>{t('Phone number')}</span><input type="tel" inputMode="tel" dir="ltr" value={phone} onChange={(event) => setPhone(event.target.value)} required /></label>
           <label className="store-field"><span>{t('Delivery address')}</span><textarea value={deliveryAddress} onChange={(event) => setDeliveryAddress(event.target.value)} required minLength={5} rows="3" /></label>
           {hasUnavailableItems && <p className="store-state-error"><Link to="/cart">{t('Update the unavailable items in your cart')}</Link>.</p>}
+          {checkoutReady === null && <p role="status">{t('Checking checkout availability…')}</p>}
+          {checkoutReady === false && <p className="store-state-error" role="alert">{t(checkoutUnavailable)}</p>}
           {errorMessage && <p className="store-state-error" role="alert">{t(errorMessage)}</p>}
-          <button className="store-primary-button" type="submit" disabled={submitting || loading || !items.length || hasUnavailableItems}>
+          <button className="store-primary-button" type="submit" disabled={!checkoutReady || submitting || loading || !items.length || hasUnavailableItems}>
             {submitting ? t('Checking order…') : t('Place order')}
           </button>
           {showOrderRecovery && (

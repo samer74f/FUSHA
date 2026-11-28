@@ -67,6 +67,8 @@ const arabic = {
   "Your cart is empty. Add a product before placing an order.": "سلتك فارغة. أضف منتجًا قبل تأكيد الطلب.",
   "Update the unavailable items in your cart before placing an order.": "حدّث المنتجات غير المتوفرة في سلتك قبل تأكيد الطلب.",
   "Check the recipient name, phone number, and delivery address.": "تأكد من اسم المستلم ورقم الهاتف وعنوان التوصيل.",
+  "Checking checkout availability…": "جارٍ التحقق من توفر إتمام الطلب…",
+  "Checkout is temporarily unavailable. You can keep browsing the store.": "إتمام الطلب غير متاح حاليًا. بإمكانك متابعة تصفّح المتجر.",
   "Enable browser storage to safely place an order.": "فعّل تخزين المتصفح حتى تقدر تأكّد الطلب بأمان.",
   "Your earlier checkout was already placed. Use Check previous order to open it.": "طلبك السابق مسجّل. اضغط «تحقق من الطلب السابق» لفتحه.",
   "We could not confirm your order. Check the previous order or retry this checkout.": "تعذّر تأكيد الطلب. تحقّق من الطلب السابق أو أعد المحاولة.",

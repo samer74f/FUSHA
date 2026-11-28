@@ -23,6 +23,11 @@ export async function getOrders(userId) {
     .order('created_at', { ascending: false })
 }
 
+export async function isCheckoutAvailable() {
+  const { error } = await supabase.from('orders').select('checkout_request_id').limit(0)
+  return !error
+}
+
 export async function getOrderByRequest(userId, requestId) {
   return supabase.from('orders').select('id')
     .eq('user_id', userId)
