@@ -1,27 +1,27 @@
-# ربط Trips بمشروع Supabase
+# Connect Trips to Supabase
 
-جرى التحقق من بنية `trips` و`trip_participants` وسياساتهما في مشروع FUSHA المشترك. يحتوي المشروع أيضاً على `trip_budget_items`. يعمل قسم الرحلات مع الجداول الموجودة ومسار طلبات الانضمام المعتمد فيها.
+Trips uses the existing FUSHA Supabase project and its join-request workflow. The shared database contains the validated `trips` and `trip_participants` tables and the `trip_budget_items` table.
 
-1. افتح مشروع FUSHA الحالي في لوحة Supabase واختر **Connect**. ضع **Project URL** في `VITE_SUPABASE_URL`، و**Publishable key** الذي يبدأ بـ `sb_publishable_` في `VITE_SUPABASE_PUBLISHABLE_KEY`. ضع القيم في `.env.local` بجانب `package.json`. هذا الملف مستثنى من Git. أعد تشغيل Vite بعد حفظه.
-2. شغّل [inspect.sql](./inspect.sql) في **SQL Editor**. سترى نتيجة واحدة فيها الأعمدة وقيمها الافتراضية والقيود والفهارس وسياسات RLS وتواقيع الدوال وصلاحيات استدعائها. الاستعلام للقراءة من كتالوج PostgreSQL ويخلو من بيانات المستخدمين وأجسام الدوال.
-3. راجع [prepare_existing.sql](./prepare_existing.sql) مع الفريق قبل تطبيقه على مشروع Supabase المشترك. يضيف حقل نوع الرحلة ودالة العدد العام وسياسة تقييد الطلبات حسب النوع.
-4. اختبر القراءة كزائر، ثم الإنشاء بحساب منظّم وإرسال طلب بحساب آخر وقبوله أو رفضه من حساب المنظّم.
+1. Open the FUSHA project in the Supabase dashboard and select **Connect**. In `.env.local` beside `package.json`, set `VITE_SUPABASE_URL` to the **Project URL** and `VITE_SUPABASE_PUBLISHABLE_KEY` to the **Publishable key** that starts with `sb_publishable_`. Git ignores `.env.local`. Restart Vite after saving.
+2. Run [inspect.sql](./inspect.sql) in the SQL editor to list columns, defaults, constraints, indexes, RLS policies, and function signatures and privileges. It reads PostgreSQL catalog metadata without returning user data or function bodies.
+3. If the trip type and public participant count are missing on a target database, review [prepare_existing.sql](./prepare_existing.sql) with the team before applying it. It adds the type field, the approved participant count function, and the policy that uses the trip type to determine whether members can request to join. The shared FUSHA project already has these additions.
+4. Test public trip browsing. Then create a trip as an organizer, submit a request from a second account, and approve or reject it from the organizer's account.
 
-## قاعدة الاختبار المحلية
+## Local test database
 
-شغّل [setup.sql](./setup.sql) لاختبار SQL في قاعدة Supabase محلية مخصّصة للاختبار، بعد تجهيز Auth وجدول `public.profiles` بمفتاح `id` من نوع UUID. استخدم حسابين تجريبيين لهما سجلا profiles. ينشئ الملف جدولي الرحلات والطلبات مطابقين للحقول التي يستخدمها التطبيق، مع سياسات الملكية وحماية السعة. ابدأ بقاعدة خالية من جدولي Trips ودوالهما. اختبر السلوك الأساسي أولاً، ثم شغّل [prepare_existing.sql](./prepare_existing.sql) على القاعدة المحلية نفسها لاختبار الأنواع والعدد العام. لتوصيل واجهة فرع Trips المستقل مباشرةً، استخدم عنوان Supabase يعمل عبر HTTPS ومفتاح نشر. مشروع الفريق المشترك يستخدم خطوة المراجعة في الأعلى.
+Set up Supabase Auth and a `public.profiles` table with a UUID `id` column in a disposable Supabase database. Use two test accounts with profile rows. Run [setup.sql](./setup.sql) in a database without the Trips tables or functions. It creates the tables, policies, and capacity checks used by Trips. Test the base workflow, then run [prepare_existing.sql](./prepare_existing.sql) in the same test database to verify trip types and public counts. The standalone Trips frontend expects an HTTPS Supabase URL and a publishable key.
 
-## الربط مع صفحة تسجيل الدخول
+## Sign-in integration
 
-- في نسخة دمج الفريق، يسجّل موجّه التطبيق `Trips` في `/trips/*` مع الخاصية `loginPath="/login"`. يبقى تصفّح الرحلات عاماً، وتعرض صفحات الإنشاء والتعديل وطلب الانضمام رابط الدخول عند الحاجة.
-- يرسل الرابط موقع الرحلة الأصلي في `state.from` بالشكل الذي يستقبله نموذج يوسف. عند نجاح الدخول بالبريد وكلمة المرور، يرجع النموذج إلى صفحة الرحلة أو الإنشاء التي فتحها المستخدم.
-- عند وجود عميل Auth في `src/components/auth/supabaseClient.js` يستخدم Trips نفس العميل. يستعمل الفرع المنفصل عميله المحلي لعرض الرحلات واختبارها أثناء انتظار دمج صفحة الدخول.
+- The integrated app mounts `Trips` at `/trips/*` with `loginPath="/login"`. Visitors can browse trips. Create, Edit, and Request to join show a sign-in link when needed.
+- The sign-in link passes the original route in `state.from`. After password sign-in, the shared form returns the user to the route they opened.
+- Trips reuses the Auth client from `src/components/auth/supabaseClient.js` when it is present. The standalone branch uses its own configured Supabase client.
 
-## عقد البيانات الفعلي
+## Data contract
 
-- يخزن `trips` موعدي البداية والنهاية في `starts_at` و`ends_at`، وموقع اللقاء في `meeting_point`، وسعة المشاركين في `capacity`. تسند سياسة قاعدة البيانات صلاحية التعديل والحذف إلى المنظّم. المسودات مرئية للمنظّم، والرحلات المنشورة متاحة للقراءة العامة.
-- يخزن `trip_participants` الطلب باسم الحساب في `profile_id` وحالة `pending`. يستطيع المنظّم قبول الطلب أو رفضه. القيد الفريد على `trip_id` و`profile_id` يمنع التكرار، وتتحقق قاعدة البيانات من السعة عند القبول بعد قفل سجل الرحلة. السعة تُحسب من الطلبات المقبولة، والمنظّم خارج هذا العدد.
-- يرى المنظّم جميع طلبات رحلته، ويرى كل حساب طلبه وحده. عند اعتماد الترحيل، تعيد `get_trip_approved_counts` العدد المؤكد للرحلات المرئية في دفعات تصل إلى 100 معرّف. يعرض التطبيق العدد من بيانات المنظّم عند توفرها، وقد يظهر لغير المنظّم على أنه غير متاح حتى اعتماد الترحيل. دالة العدد تعكس سياسة قراءة الرحلات الحالية، لذا تُراجع معها إذا غيّر الفريق سياسة العرض.
-- عند تعذّر تحميل العدد تعرض البطاقة السعة وتعرض التفاصيل «العدد غير متاح». إلغاء الطلب يتطلب بقاءه قيد الانتظار، والمغادرة تتطلب عضوية مقبولة. إذا تغيّرت الحالة بينما الصفحة مفتوحة، يعرض التطبيق الحالة الجديدة بعد المحاولة.
-- يبقى نوع الرحلات السابقة فارغاً إلى أن يحدده المنظّم. يتيح الترحيل `Individual` و`Family` و`Group`، ويقصر الطلبات الجديدة المصنفة على الرحلات الجماعية مع استمرار مسار الطلبات الحالي للرحلات غير المصنفة.
-- حاسبة الميزانية تعمل في المتصفح. يبقى جدول `trip_budget_items` متاحاً لتكامل حفظ الميزانية لاحقاً.
+- `trips` stores the start and end times in `starts_at` and `ends_at`, the meeting point in `meeting_point`, and the participant limit in `capacity`. RLS lets the organizer edit and delete their trips. Only the organizer can see drafts. Published trips are publicly readable.
+- `trip_participants` stores each join request with a `profile_id` and an initial state of `pending`. The organizer can approve or reject it. The unique constraint on `trip_id` and `profile_id` prevents duplicate requests. PostgreSQL locks the trip row before checking capacity during approval. Approved participants occupy seats. The organizer does not occupy a participant seat.
+- The organizer can see the trip roster. Each participant can see their own request. `get_trip_approved_counts` returns counts for visible trips in batches of up to 100 IDs. Review the function together with the trip visibility policy if that policy changes.
+- If the count lookup fails, the card shows capacity and the details show **Count unavailable**. A request can be cancelled while it remains pending. An approved participant can leave. If the state changes while the page is open, Trips refreshes it after the attempted action.
+- Existing trips stay unclassified until the organizer chooses a type. The available types are `Individual`, `Family`, and `Group`. Only group trips accept new requests when a type is set. Unclassified trips retain the existing join-request workflow.
+- The budget calculator runs in the browser. `trip_budget_items` is available for a future persistence feature.

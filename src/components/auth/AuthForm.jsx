@@ -1,35 +1,37 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { authText } from './accountText.js'
 import { useAuth } from './useAuth.js'
 import './auth.css'
 
-function getFriendlyError(error) {
+function getAuthErrorKey(error) {
   const message = error?.message?.toLowerCase() ?? ''
 
   if (message.includes('invalid login credentials')) {
-    return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+    return 'badCredentials'
   }
 
   if (message.includes('user already registered')) {
-    return 'هذا البريد مسجل مسبقاً. جرّب تسجيل الدخول.'
+    return 'emailInUse'
   }
 
   if (message.includes('password')) {
-    return 'تحقق من كلمة المرور، وتأكد أنها لا تقل عن 6 أحرف.'
+    return 'checkPassword'
   }
 
   if (message.includes('email')) {
-    return 'تحقق من صحة البريد الإلكتروني.'
+    return 'checkEmail'
   }
 
-  return 'تعذر إكمال العملية. حاول مرة أخرى بعد قليل.'
+  return 'requestFailed'
 }
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
-export default function AuthForm({ mode }) {
+export default function AuthForm({ mode, language = 'en' }) {
+  const text = authText[language]
   const isRegister = mode === 'register'
   const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
@@ -38,32 +40,32 @@ export default function AuthForm({ mode }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
+  const [errorKey, setErrorKey] = useState('')
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(event) {
     event.preventDefault()
-    setErrorMessage('')
-    setSuccessMessage('')
+    setErrorKey('')
+    setNeedsEmailConfirmation(false)
 
     if (!isValidEmail(email.trim())) {
-      setErrorMessage('أدخل بريداً إلكترونياً صحيحاً.')
+      setErrorKey('invalidEmail')
       return
     }
 
     if (password.length < 6) {
-      setErrorMessage('يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.')
+      setErrorKey('shortPassword')
       return
     }
 
     if (isRegister && fullName.trim().length < 2) {
-      setErrorMessage('أدخل اسمك (حرفان على الأقل).')
+      setErrorKey('shortName')
       return
     }
 
     if (isRegister && password !== confirmPassword) {
-      setErrorMessage('كلمتا المرور غير متطابقتين.')
+      setErrorKey('passwordMismatch')
       return
     }
 
@@ -79,51 +81,50 @@ export default function AuthForm({ mode }) {
         : await signIn({ email: email.trim(), password })
 
       if (result.error) {
-        setErrorMessage(getFriendlyError(result.error))
+        setErrorKey(getAuthErrorKey(result.error))
       } else if (isRegister && !result.data.session) {
-        setSuccessMessage('تم إنشاء الحساب. افتح بريدك لتأكيد التسجيل ثم سجّل الدخول.')
+        setNeedsEmailConfirmation(true)
       } else {
         const nextPath = location.state?.from?.pathname ?? '/profile'
         navigate(nextPath, { replace: true })
       }
     } catch {
-      setErrorMessage('تعذر الاتصال بالخدمة. تحقق من اتصال الإنترنت وحاول مجدداً.')
+      setErrorKey('connection')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <main className="auth-page" dir="rtl">
+    <main className="auth-page" lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <section className="auth-card" aria-labelledby="auth-title">
-        <Link className="auth-brand" to="/" aria-label="العودة إلى FUSHA">
+        <Link className="auth-brand" to="/" aria-label={text.returnHome}>
           <span className="auth-brand-mark" aria-hidden="true">F</span>
           <span>FUSHA</span>
         </Link>
-        <p className="auth-eyebrow">رحلتك تبدأ من هنا</p>
-        <h1 id="auth-title">{isRegister ? 'إنشاء حساب' : 'أهلاً بعودتك'}</h1>
+        <p className="auth-eyebrow">{text.intro}</p>
+        <h1 id="auth-title">{isRegister ? text.registerTitle : text.loginTitle}</h1>
         <p className="auth-description">
-          {isRegister
-            ? 'أنشئ حسابك لاكتشاف الرحلات والاستعداد لمغامرتك القادمة.'
-            : 'سجّل الدخول لمتابعة رحلاتك وحسابك.'}
+          {isRegister ? text.registerDescription : text.loginDescription}
         </p>
 
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           {isRegister && (
             <label className="auth-field">
-              <span>الاسم الكامل</span>
+              <span>{text.fullName}</span>
               <input
                 autoComplete="name"
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                placeholder="مثال: يوسف أحمد"
+                placeholder={text.nameExample}
+                dir="auto"
                 required
               />
             </label>
           )}
 
           <label className="auth-field">
-            <span>البريد الإلكتروني</span>
+            <span>{text.email}</span>
             <input
               autoComplete="email"
               type="email"
@@ -136,43 +137,43 @@ export default function AuthForm({ mode }) {
           </label>
 
           <label className="auth-field">
-            <span>كلمة المرور</span>
+            <span>{text.password}</span>
             <input
               autoComplete={isRegister ? 'new-password' : 'current-password'}
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="6 أحرف على الأقل"
+              placeholder={text.passwordHint}
               required
             />
           </label>
 
           {isRegister && (
             <label className="auth-field">
-              <span>تأكيد كلمة المرور</span>
+              <span>{text.confirmPassword}</span>
               <input
                 autoComplete="new-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="أعد كتابة كلمة المرور"
+                placeholder={text.confirmPasswordHint}
                 required
               />
             </label>
           )}
 
-          {errorMessage && <p className="auth-alert auth-alert-error" role="alert">{errorMessage}</p>}
-          {successMessage && <p className="auth-alert auth-alert-success" role="status">{successMessage}</p>}
+          {errorKey && <p className="auth-alert auth-alert-error" role="alert">{text.errors[errorKey]}</p>}
+          {needsEmailConfirmation && <p className="auth-alert auth-alert-success" role="status">{text.confirmEmail}</p>}
 
           <button className="auth-submit" type="submit" disabled={submitting}>
-            {submitting ? 'جارٍ الإرسال…' : isRegister ? 'إنشاء الحساب' : 'تسجيل الدخول'}
+            {submitting ? text.submitting : isRegister ? text.createAccount : text.signIn}
           </button>
         </form>
 
         <p className="auth-switch">
-          {isRegister ? 'لديك حساب بالفعل؟' : 'ليس لديك حساب؟'}{' '}
-          <Link to={isRegister ? '/login' : '/register'}>
-            {isRegister ? 'سجّل الدخول' : 'أنشئ حساباً'}
+          {isRegister ? text.haveAccount : text.needAccount}{' '}
+          <Link to={isRegister ? '/login' : '/register'} state={location.state}>
+            {isRegister ? text.signIn : text.registerTitle}
           </Link>
         </p>
       </section>

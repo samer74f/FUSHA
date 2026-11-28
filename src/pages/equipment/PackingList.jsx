@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { result, supabase } from '../../services/supabase'
-import { terrains, tripTypes } from './catalog'
+import { getPackingOptions } from './equipmentCatalog'
 
 export function Select({ label, options, ...props }) {
   return (
@@ -12,7 +12,7 @@ export function Select({ label, options, ...props }) {
   )
 }
 
-function PackingItems({ owner, trip, templates }) {
+function PackingItems({ owner, trip, templates, text }) {
   const localKey = 'fusha:packing:' + Object.values(trip).join(':')
   const [changes, setChanges] = useState(() => {
     if (owner) return []
@@ -33,7 +33,7 @@ function PackingItems({ owner, trip, templates }) {
       .then(rows => { if (active) setChanges(rows) })
       .catch(() => {
         if (active) {
-          setError('تعذّر تحميل القائمة. أعد فتح القسم للمحاولة مجددًا.')
+          setError('loadError')
           setLoadFailed(true)
         }
       })
@@ -45,11 +45,13 @@ function PackingItems({ owner, trip, templates }) {
     (!template.trip_type || template.trip_type === trip.trip_type)
     && (!template.terrain || template.terrain === trip.terrain)
     && (template.min_days ?? 1) <= trip.days
-  ).flatMap(template => template.items)
-  const items = new Map(suggested.map(item => [item, { name: item, packed: false }]))
+  ).flatMap(template => template.items.map((name, index) => ({
+    name, label: template.itemLabels?.[index] ?? name, packed: false,
+  })))
+  const items = new Map(suggested.map(item => [item.name, item]))
   changes.forEach(item => {
     if (item.removed) items.delete(item.name)
-    else items.set(item.name, item)
+    else items.set(item.name, { ...item, label: items.get(item.name)?.label ?? item.name })
   })
   const packedCount = [...items.values()].filter(item => item.packed).length
 
@@ -68,7 +70,7 @@ function PackingItems({ owner, trip, templates }) {
       setChanges(next)
       return true
     } catch {
-      setError('تعذّر حفظ التغيير. حاول مجددًا.')
+      setError('saveError')
       return false
     } finally {
       setBusy(false)
@@ -79,50 +81,51 @@ function PackingItems({ owner, trip, templates }) {
     event.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) return
-    if (items.has(trimmed)) {
-      setError('هذا العنصر موجود في القائمة.')
+    if (items.has(trimmed) || [...items.values()].some(item => item.label === trimmed)) {
+      setError('duplicate')
       return
     }
     if (await save({ name: trimmed, packed: false, removed: false })) setName('')
   }
 
   return <>
-    {error && <p role="alert" className="notice">{error}</p>}
-    {loading && <p role="status">جارٍ تحميل قائمتك…</p>}
+    {error && <p role="alert" className="notice">{text[error]}</p>}
+    {loading && <p role="status">{text.loading}</p>}
     {!loading && !loadFailed && (
       <div className="packing-panel">
         <div className="section-line">
-          <h3>قائمة رحلتك</h3>
-          <span>{packedCount} من {items.size} تم تجهيزها</span>
+          <h3>{text.checklist}</h3>
+          <span>{text.count(packedCount, items.size)}</span>
         </div>
-        <progress value={packedCount} max={items.size || 1} aria-label="تقدم التجهيز" />
+        <progress value={packedCount} max={items.size || 1} aria-label={text.progress} />
         <ul className="checklist">
           {[...items.values()].map(item => (
             <li key={item.name}>
               <label className={item.packed ? 'checked' : ''}>
                 <input type="checkbox" checked={item.packed} disabled={busy}
                   onChange={() => save({ name: item.name, packed: !item.packed, removed: false })} />
-                {item.name}
+                <bdi>{item.label}</bdi>
               </label>
               <button className="quiet" type="button" disabled={busy}
-                aria-label={'حذف ' + item.name} onClick={() => save({ name: item.name, packed: false, removed: true })}>
-                حذف
+                aria-label={text.remove + ' ' + item.label} onClick={() => save({ name: item.name, packed: false, removed: true })}>
+                {text.remove}
               </button>
             </li>
           ))}
         </ul>
-        {!items.size && <p>القائمة فارغة.</p>}
+        {!items.size && <p>{text.empty}</p>}
         <form className="inline-form" onSubmit={add}>
-          <input value={name} onChange={event => setName(event.target.value)}
-            required maxLength={120} aria-label="اسم عنصر جديد" placeholder="أضف عنصرًا إلى القائمة" />
-          <button disabled={busy}>إضافة</button>
+          <input dir="auto" value={name} onChange={event => setName(event.target.value)}
+            required maxLength={120} aria-label={text.newItem} placeholder={text.placeholder} />
+          <button disabled={busy}>{text.add}</button>
         </form>
       </div>
     )}
   </>
 }
 
-export default function PackingList({ owner, templates }) {
+export default function PackingList({ owner, templates, language, text }) {
+  const { tripTypes, terrains } = getPackingOptions(language)
   const [trip, setTrip] = useState({ trip_type: 'hiking', terrain: 'mountain', days: 1 })
 
   function generate(event) {
@@ -134,17 +137,17 @@ export default function PackingList({ owner, templates }) {
 
   return (
     <section id="packing" aria-labelledby="packing-title">
-      <h2 id="packing-title">قائمة التجهيز الذكية</h2>
-      <p className="muted">{owner ? 'تُحفظ القائمة في حسابك.' : 'تُحفظ قائمة الضيف على هذا المتصفح.'}</p>
-      <form className="trip-form" onSubmit={generate}>
-        <Select label="نوع الرحلة" name="trip_type" options={tripTypes} defaultValue={trip.trip_type} />
-        <label>مدة الرحلة بالأيام
+      <h2 id="packing-title">{text.title}</h2>
+      <p className="muted">{owner ? text.accountNote : text.guestNote}</p>
+      <form className="equipment-packing-form" onSubmit={generate}>
+        <Select label={text.tripType} name="trip_type" options={tripTypes} defaultValue={trip.trip_type} />
+        <label>{text.tripLength}
           <input type="number" name="days" min="1" max="365" defaultValue={trip.days} required />
         </label>
-        <Select label="طبيعة الرحلة" name="terrain" options={terrains} defaultValue={trip.terrain} />
-        <button>عرض القائمة</button>
+        <Select label={text.terrain} name="terrain" options={terrains} defaultValue={trip.terrain} />
+        <button>{text.show}</button>
       </form>
-      <PackingItems key={[owner, ...Object.values(trip)].join(':')} owner={owner} trip={trip} templates={templates} />
+      <PackingItems key={[owner, ...Object.values(trip)].join(':')} owner={owner} trip={trip} templates={templates} text={text} />
     </section>
   )
 }
