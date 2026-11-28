@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 
 const arabic = {
+  language: 'ar',
   locale: 'ar-u-nu-latn',
   brand: 'فسحة',
   nav: { label: 'التنقل الرئيسي', home: 'الرئيسية', places: 'الأماكن', compare: 'المقارنة', equipment: 'المعدات' },
@@ -11,7 +12,22 @@ const arabic = {
     notFound: 'الصفحة غير موجودة.',
     backHome: 'العودة للرئيسية',
   },
-  types: { desert: 'صحراء', sea: 'بحر وشواطئ', forest: 'غابات', mountain: 'جبال ومحميات', valley: 'أودية', heritage: 'آثار وتراث' },
+  types: {
+    desert: 'صحراء',
+    sea: 'بحر وشواطئ',
+    forest: 'غابات',
+    mountain: 'جبال ومحميات',
+    valley: 'أودية',
+    heritage: 'آثار وتراث',
+    mountains: 'جبال',
+    valleys: 'أودية',
+    forests: 'غابات',
+    waterfalls: 'شلالات',
+    beaches: 'شواطئ',
+    caves: 'كهوف',
+    'nature-reserves': 'محميات طبيعية',
+    'historic-sites': 'مواقع تاريخية',
+  },
   facilities: { camping: 'تخييم', hiking: 'مسارات مشي', guide: 'مرشد سياحي', parking: 'مواقف سيارات', toilets: 'دورات مياه', food: 'مطاعم', swimming: 'سباحة' },
   explore: {
     title: 'استكشف الأماكن',
@@ -109,6 +125,7 @@ const arabic = {
 }
 
 const english = {
+  language: 'en',
   locale: 'en',
   brand: 'FUSHA',
   nav: { label: 'Main navigation', home: 'Home', places: 'Places', compare: 'Compare', equipment: 'Equipment' },

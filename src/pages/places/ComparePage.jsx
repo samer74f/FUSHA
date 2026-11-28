@@ -5,6 +5,7 @@ import { EmptyState, ErrorState, Loading } from '../../components/places/Status'
 import { useAsync } from '../../hooks/useAsync'
 import { MAX_COMPARE, clearCompare, toggleCompare, useCompare } from '../../hooks/useCompare'
 import { getPlaces, getPlacesByIds } from '../../services/placesService'
+import { getLocalizedPlaceContent } from './placesData'
 import { usePlacesText } from './placesText'
 
 const loadAll = () => getPlaces({ sort: 'name' })
@@ -18,6 +19,7 @@ export default function ComparePage() {
   const { data: all } = useAsync(loadAll)
   const options = all?.filter((place) => !ids.includes(place.id)) ?? []
   const visible = chosen?.filter((place) => ids.includes(place.id))
+    .map((place) => ({ ...place, ...getLocalizedPlaceContent(place, t.language) }))
 
   return (
     <div className="wrap pl-page">
@@ -32,7 +34,9 @@ export default function ComparePage() {
             {t.compare.pick}
             <select className="pl-field" value="" onChange={(event) => event.target.value && toggleCompare(event.target.value)}>
               <option value="">—</option>
-              {options.map((place) => <option key={place.id} value={place.id}>{place.name}</option>)}
+              {options.map((place) => (
+                <option key={place.id} value={place.id}>{getLocalizedPlaceContent(place, t.language).name}</option>
+              ))}
             </select>
           </label>
         )}

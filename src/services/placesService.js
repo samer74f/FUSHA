@@ -1,3 +1,4 @@
+import { getLocalizedPlaceContent } from '../pages/places/placesData.js'
 import { result, supabase } from './supabase.js'
 
 const placeColumns = 'id,slug,name,description,region,category_id,country,latitude,longitude,difficulty'
@@ -74,11 +75,21 @@ async function completePlaces(rows) {
   })
 }
 
+function normalizePlaceSearch(value) {
+  return value.normalize('NFD').replace(/\p{M}/gu, '').trim().toLocaleLowerCase()
+}
+
+function matchesPlaceSearch(place, search) {
+  const arabic = getLocalizedPlaceContent(place, 'ar')
+  const searchableText = [place.name, place.region, place.description, arabic.name, arabic.region, arabic.description]
+  return normalizePlaceSearch(searchableText.join(' ')).includes(search)
+}
+
 export function filterPlaces(places, { q = '', city = '', type = '', minRating = '', sort = 'rating' } = {}) {
-  const search = q.trim().toLocaleLowerCase()
+  const search = normalizePlaceSearch(q)
   return places
     .filter((place) =>
-      (!search || [place.name, place.region, place.description].join(' ').toLocaleLowerCase().includes(search)) &&
+      (!search || matchesPlaceSearch(place, search)) &&
       (!city || place.region === city) &&
       (!type || place.type === type) &&
       (!minRating || place.rating >= Number(minRating)))
