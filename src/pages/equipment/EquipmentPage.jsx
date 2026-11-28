@@ -4,6 +4,7 @@ import { categories, getEquipmentCategories, guide, localizeGuideRow, localizeTe
 import { equipmentText } from './equipmentText'
 import PackingList from './PackingList'
 import UsedGear from './UsedGear'
+import './equipment.css'
 
 function Account({ owner, text }) {
   const [open, setOpen] = useState(false)
@@ -55,19 +56,26 @@ function Account({ owner, text }) {
 function EquipmentGuide({ items, language, title, text }) {
   const categoryLabels = getEquipmentCategories(language)
   const [category, setCategory] = useState('all')
-  const visible = items.filter(item => category === 'all' || item.category === category)
+  const [search, setSearch] = useState('')
+  const term = search.trim().toLocaleLowerCase(language)
+  const visible = items.map(item => localizeGuideRow(item, language)).filter(item => (
+    (category === 'all' || item.category === category) && item.name.toLocaleLowerCase(language).includes(term)
+  ))
 
   return (
     <section id="guide" aria-labelledby="guide-title">
       <h2 id="guide-title">{title}</h2>
+      <label className="equipment-search">{text.search}
+        <input type="search" dir="auto" value={search} onChange={event => setSearch(event.target.value)} />
+      </label>
       <div className="filters" aria-label={text.categories}>
         {Object.entries({ all: text.all, ...categoryLabels }).map(([key, label]) => (
           <button key={key} className="chip" aria-pressed={key === category} onClick={() => setCategory(key)}>{label}</button>
         ))}
       </div>
-      {!visible.length && <p className="empty">{text.empty}</p>}
+      {!visible.length && <p className="empty">{term ? text.noMatches : text.empty}</p>}
       <div className="card-grid">
-        {visible.map(row => localizeGuideRow(row, language)).map(item => (
+        {visible.map(item => (
           <article className="card" key={item.id}>
             {item.image_url
               ? <img className="listing-img" src={item.image_url} alt={item.name} loading="lazy" />
@@ -96,13 +104,14 @@ function currentSection() {
   return Object.hasOwn(equipmentText.en.sections, key) ? key : 'guide'
 }
 
-export default function EquipmentPage({ language = 'en' }) {
+export default function EquipmentPage({ language = 'en', onLanguageChange }) {
   const text = equipmentText[language] ?? equipmentText.en
   const [section, setSection] = useState(currentSection)
   const [owner, setOwner] = useState(null)
   const [items, setItems] = useState(guide)
   const [packingTemplates, setPackingTemplates] = useState(templates)
   const [listings, setListings] = useState([])
+  const [contactAvailable, setContactAvailable] = useState(false)
   const [loading, setLoading] = useState(Boolean(supabase))
   const [failed, setFailed] = useState(false)
 
@@ -130,7 +139,9 @@ export default function EquipmentPage({ language = 'en' }) {
       result(supabase.from('equipment').select().eq('kind', 'guide')),
       result(supabase.from('packing_templates').select().order('min_days').order('id')),
       result(supabase.from('equipment').select().in('kind', ['sale', 'loan']).order('created_at', { ascending: false })),
-    ]).then(([guideRows, templateRows, listingRows]) => {
+      supabase.from('equipment').select('contact', { head: true }).in('kind', ['sale', 'loan']).limit(1)
+        .then(({ error }) => !error, () => false),
+    ]).then(([guideRows, templateRows, listingRows, hasContact]) => {
       if (!active) return
       if (guideRows.length) {
         const categoryOrder = Object.keys(categories)
@@ -138,6 +149,7 @@ export default function EquipmentPage({ language = 'en' }) {
       }
       if (templateRows.length) setPackingTemplates(templateRows)
       setListings(listingRows)
+      setContactAvailable(hasContact)
     }).catch(() => { if (active) setFailed(true) })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
@@ -148,7 +160,15 @@ export default function EquipmentPage({ language = 'en' }) {
       <header className="site-header">
         <div className="wrap header-inner">
           <a className="brand" href="#guide">{text.brand}<span>.</span></a>
-          <Account key={owner ?? 'guest'} owner={owner} text={text.account} />
+          <div className="equipment-header-controls">
+            <Account key={owner ?? 'guest'} owner={owner} text={text.account} />
+            {onLanguageChange && (
+              <button type="button" className="secondary" lang={language === 'ar' ? 'en' : 'ar'}
+                onClick={() => onLanguageChange(language === 'ar' ? 'en' : 'ar')}>
+                {language === 'ar' ? 'English' : 'العربية'}
+              </button>
+            )}
+          </div>
         </div>
       </header>
       <main className="wrap">
@@ -166,7 +186,8 @@ export default function EquipmentPage({ language = 'en' }) {
         {section === 'packing' && <PackingList owner={owner} language={language} text={text.packing}
           templates={packingTemplates.map(row => localizeTemplateRow(row, language))} />}
         {section === 'used' && <UsedGear key={owner ?? 'guest'} owner={owner} listings={listings} setListings={setListings}
-          language={language} title={text.sections.used} text={text.usedGear} loading={loading} failed={failed} />}
+          language={language} title={text.sections.used} text={text.usedGear}
+          loading={loading} failed={failed} contactAvailable={contactAvailable} />}
       </main>
     </>
   )

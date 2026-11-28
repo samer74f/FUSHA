@@ -64,34 +64,35 @@
   margin: clamp(1.25rem, 4vw, 3rem) auto;
 }
 
-.home-intro {
-  border-radius: 1rem;
-  padding: clamp(1.5rem, 5vw, 3.5rem);
-  background: #244b38;
-  color: #fff;
-}
-
-.home-intro h1 {
-  margin: 0;
-  font-size: clamp(2rem, 6vw, 3.5rem);
-}
-
-.home-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 1.25rem;
-}
-
-.home-links a {
-  padding: 0.65rem 0.9rem;
-  border-radius: 0.5rem;
-  color: #244b38;
-  background: #fff;
-}
-
 .site-layout-footer {
   margin-top: auto;
   border-top: 1px solid #dedfd3;
   text-align: center;
+}
+
+.pl-app {
+  --forest: #234936;
+  --line: #dfdfd3;
+  --paper: #fffef9;
+  --muted: #58665d;
+  line-height: 1.65;
+}
+
+.pl-app .wrap {
+  width: min(1120px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.pl-app button {
+  border: 1px solid var(--forest);
+  border-radius: .6rem;
+  padding: .55rem .9rem;
+  background: var(--forest);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pl-app h1, .pl-app h2, .pl-app h3, .pl-app p {
+  margin: 0;
 }

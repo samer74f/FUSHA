@@ -139,7 +139,7 @@ export default function PackingList({ owner, templates, language, text }) {
     <section id="packing" aria-labelledby="packing-title">
       <h2 id="packing-title">{text.title}</h2>
       <p className="muted">{owner ? text.accountNote : text.guestNote}</p>
-      <form className="trip-form" onSubmit={generate}>
+      <form className="equipment-packing-form" onSubmit={generate}>
         <Select label={text.tripType} name="trip_type" options={tripTypes} defaultValue={trip.trip_type} />
         <label>{text.tripLength}
           <input type="number" name="days" min="1" max="365" defaultValue={trip.days} required />
