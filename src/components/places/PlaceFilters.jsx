@@ -1,3 +1,4 @@
+import { getLocalizedRegionName } from '../../pages/places/placesData'
 import { usePlacesText } from '../../pages/places/placesText'
 
 const minRatings = ['4.5', '4', '3']
@@ -16,7 +17,9 @@ export default function PlaceFilters({ places, params, onChange }) {
         {t.explore.city}
         <select {...bind('city')}>
           <option value="">{t.explore.all}</option>
-          {regions.map((region) => <option key={region} value={region}>{region}</option>)}
+          {regions.map((region) => (
+            <option key={region} value={region}>{getLocalizedRegionName(region, t.language)}</option>
+          ))}
         </select>
       </label>
       <label>
